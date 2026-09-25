@@ -1,139 +1,141 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-
-  --bg-main: #FBF9F5;
-  --cream-paper: #F6F2E9;
-  --leaf-primary: #1B4D3E;
-  --leaf-light: #E3F1E7;
-  --cardboard-tag: #F3ECE1;
-  --tomato-urgent: #E63946;
-  --mango-warning: #F59E0B;
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: light;
 }
 
-* {
-  box-sizing: border-box;
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
 }
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-  background-color: #FBF9F5;
-  color: #1A2421;
+  background: #fffbf3;
+  color: #26312a;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
-/* Custom warm grocery scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #F4EFE6;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #D3BE9E;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #BFA37B;
-}
-
-/* Paper label texture style */
-.paper-card {
-  background: #FFFFFF;
-  border: 1px solid #EFEAE0;
-  box-shadow: 0 2px 10px -2px rgba(40, 30, 20, 0.04), 0 1px 3px 0 rgba(40, 30, 20, 0.02);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.paper-card:hover {
-  border-color: #E2D7C3;
-  box-shadow: 0 8px 24px -4px rgba(40, 30, 20, 0.07), 0 2px 6px -1px rgba(40, 30, 20, 0.03);
-}
-
-.tag-label {
-  position: relative;
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  letter-spacing: -0.02em;
-}
-
-/* Grocery barcode stripe effect */
-.barcode-pattern {
-  background: repeating-linear-gradient(
-    90deg,
-    #1A2421 0px,
-    #1A2421 2px,
-    transparent 2px,
-    transparent 4px,
-    #1A2421 4px,
-    #1A2421 7px,
-    transparent 7px,
-    transparent 9px,
-    #1A2421 9px,
-    #1A2421 10px,
-    transparent 10px,
-    transparent 13px,
-    #1A2421 13px,
-    #1A2421 16px,
-    transparent 16px,
-    transparent 18px
-  );
-}
-
-/* Subtle wooden shelf border */
-.shelf-divider {
-  border-bottom: 3px solid #D8C79D;
-  position: relative;
-}
-.shelf-divider::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #BFA37B;
-  opacity: 0.6;
-}
-
-/* Gentle laser scan animation */
-@keyframes laserSweep {
-  0% {
-    top: 5%;
-    opacity: 0.8;
-  }
-  50% {
-    top: 90%;
-    opacity: 1;
-  }
-  100% {
-    top: 5%;
-    opacity: 0.8;
-  }
-}
-
-.animate-laser {
-  animation: laserSweep 2s ease-in-out infinite;
-}
-
-/* Selection */
 ::selection {
-  background-color: #C5E3CE;
-  color: #0F2E26;
+  background: #c3e4c9;
+  color: #103621;
+}
+
+:focus-visible {
+  outline: 3px solid #5db277;
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-leaf-700;
+  }
+
+  .display-xl {
+    @apply font-display font-semibold tracking-[-0.02em] text-ink;
+    font-variation-settings: 'opsz' 144;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold transition-all duration-200 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-lg {
+    @apply px-7 py-4 text-base;
+  }
+  .btn-md {
+    @apply px-5 py-3 text-sm;
+  }
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+  .btn-primary {
+    @apply bg-leaf-600 text-white shadow-[0_10px_24px_-10px_rgba(35,118,69,0.7)] hover:bg-leaf-700;
+  }
+  .btn-secondary {
+    @apply bg-white text-ink ring-1 ring-inset ring-cream-400 hover:bg-cream-100 hover:ring-soil-300;
+  }
+  .btn-ghost {
+    @apply text-ink-soft hover:bg-cream-200 hover:text-ink;
+  }
+  .btn-mango {
+    @apply bg-mango-400 text-ink shadow-[0_10px_24px_-12px_rgba(209,133,10,0.8)] hover:bg-mango-300;
+  }
+
+  .card {
+    @apply rounded-4xl bg-white shadow-soft ring-1 ring-inset ring-cream-300/80;
+  }
+
+  .paper-tag {
+    @apply rounded-2xl bg-cream-50 shadow-lift ring-1 ring-inset ring-cream-300;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold;
+  }
+}
+
+/* Wooden shelf plank used across illustrations built from HTML */
+.shelf-plank {
+  background: linear-gradient(180deg, #e6c697 0%, #d6b587 55%, #c4985f 100%);
+  box-shadow: 0 10px 18px -10px rgba(107, 75, 43, 0.55);
+}
+
+/* Soft paper grain for large sections */
+.paper-grain {
+  background-image: radial-gradient(rgba(169, 124, 71, 0.07) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Printing (demo barcode sheet) ---------- */
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body[data-print-single] .barcode-card:not([data-print-target='true']) {
+    display: none !important;
+  }
+}
+
+.print-only {
+  display: none;
 }

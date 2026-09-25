@@ -1,72 +1,93 @@
-# Visionary X — Smart Grocery Inventory & Waste Prevention Platform
+# Smart Stock — Know What to Sell First
 
-> **Simple, Interactive School & College Project Demonstration**  
-> **Core Concept:** SCAN ➔ UNDERSTAND ➔ ORGANIZE ➔ REDUCE WASTE
+> A smart inventory assistant for neighbourhood grocery shops, by Team Visionary X.
+> **Scan your stock. Know what needs attention. Put it in the right place. Waste less.**
 
-Visionary X is a friendly smart grocery shop assistant built for live student demonstrations to teachers and judges. It demonstrates how machine-readable barcodes, real-time shelf-life tracking, and intelligent shelf organization can eliminate grocery food waste.
+Grocery shops keep extra stock in storage. New deliveries get stacked in front, older products
+get hidden, and some expire before anyone notices. Smart Stock fixes the real problem — not
+knowing what needs attention first:
 
----
+**SCAN → IDENTIFY → CHECK EXPIRY → PRIORITIZE → ORGANIZE → SELL FIRST**
 
-## 🌟 Key Features
+## What's inside
 
-1. **📷 Real Barcode Scanning (`/scan`)**
-   - Live camera barcode decoding using `@zxing/browser` & `getUserMedia` with back/environment camera preference.
-   - Immediate detection of Code-128 & EAN barcodes with audio feedback.
-   - Instant product recognition card showing units, days to expiry, urgency status (🔴 *Sell First*, 🟡 *Sell Soon*, 🟢 *Fresh*), and smart placement advice.
-   - Quick fallback buttons and manual numeric input for testing without a webcam.
+| Route | What it is |
+| --- | --- |
+| `/` | Product website: hero with an interactive shelf, What it is, The Problem, The Solution, How it works, a simulated scan, Why expiry matters, the real scanner, My Stock preview, a 3D warehouse preview, Use cases, Before/After story and a final call to action. |
+| `/scanner` | **Real camera barcode scanner.** Opens the rear camera (`getUserMedia`, `facingMode: environment`), decodes frames continuously, pauses when a product is found and shows expiry, a shelf-life bar and the recommended shelf. Handles denied permission, no camera and non-HTTPS pages, and always offers manual entry. |
+| `/demo` | Printable **demo barcodes**: six real Code 128 barcodes on one A4 page, a *Print All* button, per-card printing and a *Download Barcode Sheet* PNG. Also has the presenter guide. |
+| `/dashboard` | Simple home for the app: greeting, big *Scan a Product* button, Scanned / Needs attention / Organized, Today's Tip. |
+| `/stock` | My Stock: six product cards with quantity, days left, status and shelf location. |
+| `/warehouse` | **3D warehouse game** (React Three Fiber). Walk as the shopkeeper, scan boxes, read the expiry and carry each box to Fresh, Sell Soon or Sell First. A *Simple shelves* mode offers the same game with taps only. |
 
-2. **🏬 Interactive Warehouse & Organization Game (`/warehouse`)**
-   - **2D Mode:** 3 color-coded freshness shelves (🔴 SELL FIRST, 🟡 SELL SOON, 🟢 FRESH STORAGE) with drag/click organization.
-   - **3D Mode:** Low-poly 3D warehouse room powered by React Three Fiber & Three.js with illuminated shelf bays and real-time box positioning.
-   - **Gamification:** +50 pts for scanning, +100 pts for correct placement, +500 completion bonus with victory confetti and total waste prevented calculations (₹1,250).
+Old links keep working: `/scan → /scanner`, `/barcodes → /demo`, `/simulation → /warehouse`.
 
-3. **📦 My Stock Overview (`/stock`)**
-   - Clean, light-themed grid of all 6 products with visual urgency badges and quick details modal.
+There are two navigation contexts: the **website** (Home · What It Is · How It Works · Use Cases · Scanner · Warehouse · Demo · Try It) and the **app** (Home · Scan · My Stock · Warehouse, with a bottom tab bar on phones).
 
-4. **🖨️ Printable Demo Barcodes Sheet (`/barcodes`)**
-   - Real machine-readable Code-128 SVG barcodes generated dynamically via `jsbarcode`.
-   - Print individual or entire cut-out sheets to tape onto real bottles, packets, and boxes for live physical demonstrations.
+## The six demo products (single source of truth: `src/lib/products.ts`)
 
-5. **💡 Demo Mode & Presentation Guide**
-   - 5-step teacher presentation modal with quick reset button for repeated demonstrations.
+| Barcode | Product | Units | Expires in | Shelf |
+| --- | --- | --- | --- | --- |
+| `890000000001` | Milk | 42 | 2 days | 🔴 Sell First |
+| `890000000002` | Bread | 18 | 4 days | 🟡 Sell Soon |
+| `890000000003` | Biscuits | 35 | 30 days | 🟢 Fresh |
+| `890000000004` | Juice | 22 | 12 days | 🟢 Fresh |
+| `890000000005` | Paneer | 16 | 1 day | 🔴 Sell First |
+| `890000000006` | Rice | 50 | 180 days | 🟢 Fresh |
 
----
+The shelf comes from one rule (`getZoneForDays`): **≤ 2 days → Sell First, 3–7 days → Sell Soon, > 7 days → Fresh.**
 
-## 🥛 Demo Product Dataset
+Scanner, My Stock, dashboard and the 3D game all share one Zustand store (`src/lib/store.ts`, saved in
+`localStorage`). Scan Milk with the camera and it shows as scanned in the warehouse; place it
+on a shelf and My Stock and the dashboard update. Each correct placement earns 100 points, so
+all six earn 600 and prevent ₹1,250 of potential waste.
 
-All screens derive from a single source of truth (`src/lib/products.ts`):
+## Running a live demo
 
-| Product | Barcode | Category | Units | Shelf Life | Priority Shelf |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **🥛 Milk** | `890000000001` | Dairy | 42 | 2 days | 🔴 SELL FIRST |
-| **🍞 Bread** | `890000000002` | Bakery | 18 | 4 days | 🟡 SELL SOON |
-| **🍪 Biscuits** | `890000000003` | Snacks | 35 | 30 days | 🟢 FRESH STORAGE |
-| **🧃 Juice** | `890000000004` | Beverages | 22 | 12 days | 🟢 FRESH STORAGE |
-| **🧀 Paneer** | `890000000005` | Dairy | 16 | 1 day | 🔴 SELL FIRST |
-| **🍚 Rice** | `890000000006` | Staples | 50 | 180 days | 🟢 FRESH STORAGE |
+1. `npm install` then `npm run dev` and open <http://localhost:3000>.
+2. Open **/demo** → **Print All Barcodes** (A4, 100% scale). Cut them out and tape them onto any objects.
+3. Press **Demo Mode**. It resets the shop and shows a five-step guide: *Scan → See the product → Read expiry → Arrange it → Earn points*.
+4. On a phone the camera only opens on **HTTPS** (or `localhost`). Deploy the site (for example to Vercel) or use an HTTPS tunnel, then open `/scanner` on the phone.
 
----
+No camera? Tap a product under *No printout nearby?* on the scanner page, or type the number in *Enter Barcode Manually*.
 
-## 🚀 Getting Started
+## How the scanner works
 
-### 1. Install Dependencies
-```bash
-npm install
+- `src/lib/barcodeEngine.ts` picks the browser's built-in **BarcodeDetector** where available (Chrome on Android/macOS) and falls back to **ZXing** everywhere else (iOS Safari, Firefox, desktop).
+- Supported formats: Code 128 (used on the demo sheet — it encodes the 12-digit numbers exactly), EAN-13, EAN-8, UPC-A and UPC-E.
+- Frames alternate between the scanning-frame crop and the full frame, and some are run through an unsharp-mask sharpening pass. In testing this made blurry, far-away labels readable where they failed before.
+- Scanning stops when a product is found. *Scan Another* resumes and briefly ignores the product you just scanned, so it isn't read twice.
+
+### Tested
+
+The flow was tested in Chromium with a fake webcam fed from video clips made from the `/demo` barcodes (tilted, keystoned, blurred and noisy):
+
+- All six barcodes were recognised from the live camera feed, each in about one second including camera start-up.
+- Each scan showed the right product, expiry and recommendation. *Arrange Product* handed it to the warehouse, a wrong shelf showed "Check the expiry date", the right shelf gave +100 points, and after six products the screen showed 6/6, ₹1,250 and 600 points, with the dashboard and My Stock updated.
+- The downloaded PNG sheet and the A4 print render were decoded back to exactly `890000000001`–`890000000006`.
+
+Real printers and phone cameras vary. Always do one test scan of your printout before presenting.
+
+## Tech
+
+Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · Framer Motion · Zustand ·
+Three.js + React Three Fiber · ZXing (`@zxing/library`) + BarcodeDetector · JsBarcode · canvas-confetti · Lucide icons.
+
+## Illustrations
+
+All artwork is hand-built SVG in one warm, flat style (`src/components/art/`), so it works offline, prints cleanly and can be animated. The shop scene in the Before/After section reorganises itself as you scroll. To use AI-generated shopkeeper images instead, see [`docs/IMAGE_PROMPTS.md`](docs/IMAGE_PROMPTS.md).
+
+## Project structure
+
 ```
-
-### 2. Run Locally
-```bash
-npm run dev
+src/
+  app/(site)/        website: / and /demo
+  app/(app)/         app: /dashboard /scanner /stock /warehouse
+  components/art/    SVG illustration system (products, shopkeeper, scenes, spots)
+  components/home/   landing page sections
+  components/scanner live camera scanner + product result
+  components/warehouse 3D scene, game rules, HUD, simple mode
+  lib/products.ts    the six products + the shelf rule
+  lib/store.ts       shared shop state (scans, placements, points, demo mode)
+  lib/barcodeEngine.ts camera + barcode decoding
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## 🛠️ Technology Stack
-- **Framework:** Next.js 14 (App Router)
-- **UI & Styling:** React 18, Tailwind CSS, Lucide Icons, Framer Motion
-- **3D Graphics:** Three.js, React Three Fiber, React Three Drei
-- **State Management:** Zustand
-- **Barcode Engine:** `@zxing/browser` (camera decoding) + `jsbarcode` (SVG generation)
-- **Sound:** Web Audio API procedural synthesizers

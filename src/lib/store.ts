@@ -1,116 +1,246 @@
+'use client';
+
 import { create } from 'zustand';
-import { DemoProduct, ShelfZone, INITIAL_DEMO_PRODUCTS } from './products';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import {
+  PRODUCTS,
+  Product,
+  ZoneId,
+  ZONES,
+  findProductByBarcode,
+  getRecommendedZone,
+  formatExpiry,
+} from './products';
 
-interface DemoStoreState {
-  products: DemoProduct[];
-  points: number;
-  lastScannedProduct: DemoProduct | null;
-  selectedProductId: string | null;
-  showDemoGuide: boolean;
+/**
+ * Shared shop state. The scanner, My Stock, the dashboard and the 3D warehouse all
+ * read and write this one store, so scanning Milk on the real camera marks it as
+ * scanned inside the 3D game too. Product definitions stay in `products.ts`;
+ * only progress lives here.
+ */
 
-  // Actions
-  scanProductByBarcode: (barcode: string) => { found: boolean; product: DemoProduct | null; error?: string };
-  arrangeProductToZone: (productId: string, zone: ShelfZone) => { correct: boolean; message: string; pointsEarned: number };
-  setSelectedProductId: (id: string | null) => void;
-  clearLastScanned: () => void;
-  toggleDemoGuide: () => void;
-  resetDemo: () => void;
+export const POINTS_PER_PLACEMENT = 100;
+
+export interface ProductProgress {
+  scanned: boolean;
+  /** Where the product currently sits. null = still in the delivery area. */
+  zone: ZoneId | null;
+  placedCorrectly: boolean;
+  wrongAttempts: number;
 }
 
-export const useGroceryStore = create<DemoStoreState>((set, get) => ({
-  products: INITIAL_DEMO_PRODUCTS,
-  points: 0,
-  lastScannedProduct: null,
-  selectedProductId: null,
-  showDemoGuide: false,
+export type DemoStep = 1 | 2 | 3 | 4 | 5;
 
-  scanProductByBarcode: (barcode: string) => {
-    const cleanBarcode = barcode.trim();
-    const { products, points } = get();
-    const foundProduct = products.find((p) => p.barcode === cleanBarcode);
+export interface DemoState {
+  active: boolean;
+  step: DemoStep;
+  /** True once one full scan → arrange → points loop is done. */
+  roundComplete: boolean;
+}
 
-    if (!foundProduct) {
-      return { found: false, product: null, error: `Barcode ${cleanBarcode} not found in demo stock.` };
-    }
+export interface PlaceResult {
+  correct: boolean;
+  title: string;
+  message: string;
+  pointsEarned: number;
+  allOrganized: boolean;
+}
 
-    const isFirstScan = !foundProduct.scanned;
-    const bonusPoints = isFirstScan ? 50 : 0;
+interface ShopState {
+  progress: Record<string, ProductProgress>;
+  points: number;
+  lastScannedId: string | null;
+  /** Product handed from the scanner to the warehouse ("Arrange Product"). */
+  handoffId: string | null;
+  demo: DemoState;
 
-    const updatedProducts = products.map((p) =>
-      p.id === foundProduct.id ? { ...p, scanned: true } : p
-    );
+  scanBarcode: (raw: string) => Product | null;
+  markScanned: (productId: string) => void;
+  placeProduct: (productId: string, zone: ZoneId) => PlaceResult;
+  setHandoff: (productId: string | null) => void;
+  startDemo: () => void;
+  exitDemo: () => void;
+  advanceDemo: (step: DemoStep) => void;
+  resetShop: () => void;
+}
 
-    set({
-      products: updatedProducts,
-      lastScannedProduct: { ...foundProduct, scanned: true },
-      selectedProductId: foundProduct.id,
-      points: points + bonusPoints,
-    });
+function initialProgress(): Record<string, ProductProgress> {
+  return Object.fromEntries(
+    PRODUCTS.map((p) => [p.id, { scanned: false, zone: null, placedCorrectly: false, wrongAttempts: 0 }])
+  );
+}
 
-    return { found: true, product: { ...foundProduct, scanned: true } };
-  },
+const initialDemo: DemoState = { active: false, step: 1, roundComplete: false };
 
-  arrangeProductToZone: (productId: string, zone: ShelfZone) => {
-    const { products, points } = get();
-    const product = products.find((p) => p.id === productId);
-
-    if (!product) {
-      return { correct: false, message: 'Product not found.', pointsEarned: 0 };
-    }
-
-    const isCorrect = zone === product.idealZone;
-    const isFirstCorrectPlacement = isCorrect && !product.placedCorrectly;
-    const pointsEarned = isFirstCorrectPlacement ? 100 : 0;
-
-    const updatedProducts = products.map((p) =>
-      p.id === productId
-        ? {
-            ...p,
-            currentZone: zone,
-            placedCorrectly: isCorrect,
-          }
-        : p
-    );
-
-    // Check if all 6 are organized correctly
-    const allOrganized = updatedProducts.every((p) => p.placedCorrectly);
-    const completionBonus = allOrganized && !products.every((p) => p.placedCorrectly) ? 500 : 0;
-
-    set({
-      products: updatedProducts,
-      points: points + pointsEarned + completionBonus,
-    });
-
-    let message = '';
-    if (isCorrect) {
-      if (zone === 'SELL_FIRST') {
-        message = `✓ Great job! ${product.name} expires in ${product.daysUntilExpiry} days, so it belongs in SELL FIRST.`;
-      } else if (zone === 'SELL_SOON') {
-        message = `✓ Perfect! ${product.name} belongs in the middle SELL SOON watch zone.`;
-      } else {
-        message = `✓ Excellent! ${product.name} has long shelf life, so it belongs in FRESH STORAGE.`;
-      }
-    } else {
-      message = `Almost! Check the expiry date of ${product.name} (${product.shelfLifeText}).`;
-    }
-
-    return { correct: isCorrect, message, pointsEarned: pointsEarned + completionBonus };
-  },
-
-  setSelectedProductId: (id) => set({ selectedProductId: id }),
-  clearLastScanned: () => set({ lastScannedProduct: null }),
-  toggleDemoGuide: () => set((state) => ({ showDemoGuide: !state.showDemoGuide })),
-
-  resetDemo: () =>
-    set({
-      products: INITIAL_DEMO_PRODUCTS.map((p) => ({
-        ...p,
-        scanned: false,
-        placedCorrectly: false,
-        currentZone: 'UNASSIGNED',
-      })),
+export const useShop = create<ShopState>()(
+  persist(
+    (set, get) => ({
+      progress: initialProgress(),
       points: 0,
-      lastScannedProduct: null,
-      selectedProductId: null,
+      lastScannedId: null,
+      handoffId: null,
+      demo: initialDemo,
+
+      scanBarcode: (raw) => {
+        const product = findProductByBarcode(raw);
+        if (!product) return null;
+        get().markScanned(product.id);
+        return product;
+      },
+
+      markScanned: (productId) => {
+        const { progress, demo } = get();
+        const current = progress[productId];
+        if (!current) return;
+        set({
+          progress: { ...progress, [productId]: { ...current, scanned: true } },
+          lastScannedId: productId,
+          // Scanning shows the product straight away, so steps 1 & 2 are done together.
+          demo: demo.active ? { ...demo, step: 3, roundComplete: false } : demo,
+        });
+      },
+
+      placeProduct: (productId, zone) => {
+        const { progress, points, demo } = get();
+        const product = PRODUCTS.find((p) => p.id === productId);
+        const current = progress[productId];
+        if (!product || !current) {
+          return { correct: false, title: 'Not found', message: 'That product is not in your stock.', pointsEarned: 0, allOrganized: false };
+        }
+
+        const recommended = getRecommendedZone(product);
+        const correct = zone === recommended;
+
+        if (!correct) {
+          set({ progress: { ...progress, [productId]: { ...current, scanned: true, wrongAttempts: current.wrongAttempts + 1 } } });
+          return {
+            correct: false,
+            title: 'Check the expiry date.',
+            message: `${product.name}: ${formatExpiry(product.daysUntilExpiry).toLowerCase()}. Try another shelf.`,
+            pointsEarned: 0,
+            allOrganized: false,
+          };
+        }
+
+        const pointsEarned = current.placedCorrectly ? 0 : POINTS_PER_PLACEMENT;
+        const nextProgress = {
+          ...progress,
+          [productId]: { ...current, scanned: true, zone, placedCorrectly: true },
+        };
+        const allOrganized = PRODUCTS.every((p) => nextProgress[p.id]?.placedCorrectly);
+
+        set({
+          progress: nextProgress,
+          points: points + pointsEarned,
+          handoffId: get().handoffId === productId ? null : get().handoffId,
+          demo: demo.active ? { ...demo, step: 5, roundComplete: true } : demo,
+        });
+
+        return {
+          correct: true,
+          title: 'Great job!',
+          message: `${product.name} belongs in ${ZONES[zone].label.toUpperCase()}.`,
+          pointsEarned,
+          allOrganized,
+        };
+      },
+
+      setHandoff: (productId) => {
+        const { demo } = get();
+        set({
+          handoffId: productId,
+          demo: demo.active && productId && demo.step < 4 ? { ...demo, step: 4 } : demo,
+        });
+      },
+
+      startDemo: () =>
+        set({
+          progress: initialProgress(),
+          points: 0,
+          lastScannedId: null,
+          handoffId: null,
+          demo: { active: true, step: 1, roundComplete: false },
+        }),
+
+      exitDemo: () => set({ demo: initialDemo }),
+
+      advanceDemo: (step) => {
+        const { demo } = get();
+        if (!demo.active || step <= demo.step) return;
+        set({ demo: { ...demo, step } });
+      },
+
+      resetShop: () =>
+        set({
+          progress: initialProgress(),
+          points: 0,
+          lastScannedId: null,
+          handoffId: null,
+          demo: get().demo.active ? { active: true, step: 1, roundComplete: false } : initialDemo,
+        }),
     }),
-}));
+    {
+      name: 'smart-stock-v2',
+      version: 2,
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
+      partialize: (s) => ({
+        progress: s.progress,
+        points: s.points,
+        lastScannedId: s.lastScannedId,
+        handoffId: s.handoffId,
+        demo: s.demo,
+      }),
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<ShopState>;
+        // Always keep one entry per catalogue product, even if the catalogue changed.
+        const progress = initialProgress();
+        for (const id of Object.keys(progress)) {
+          if (saved.progress?.[id]) progress[id] = { ...progress[id], ...saved.progress[id] };
+        }
+        return { ...current, ...saved, progress };
+      },
+    }
+  )
+);
+
+/* ---------- Derived selectors ---------- */
+
+export interface StockItem extends Product {
+  recommendedZone: ZoneId;
+  progress: ProductProgress;
+}
+
+export function buildStockItems(progress: Record<string, ProductProgress>): StockItem[] {
+  return PRODUCTS.map((p) => ({
+    ...p,
+    recommendedZone: getRecommendedZone(p),
+    progress: progress[p.id] ?? { scanned: false, zone: null, placedCorrectly: false, wrongAttempts: 0 },
+  }));
+}
+
+export function useStockItems(): StockItem[] {
+  const progress = useShop((s) => s.progress);
+  return buildStockItems(progress);
+}
+
+export interface ShopSummary {
+  total: number;
+  scanned: number;
+  organized: number;
+  needsAttention: number;
+  wastePrevented: number;
+  allOrganized: boolean;
+}
+
+export function summarize(items: StockItem[]): ShopSummary {
+  const scanned = items.filter((i) => i.progress.scanned).length;
+  const organized = items.filter((i) => i.progress.placedCorrectly).length;
+  const needsAttention = items.filter((i) => i.recommendedZone !== 'FRESH' && !i.progress.placedCorrectly).length;
+  const wastePrevented = items.filter((i) => i.progress.placedCorrectly).reduce((s, i) => s + i.atRiskValue, 0);
+  return { total: items.length, scanned, organized, needsAttention, wastePrevented, allOrganized: organized === items.length };
+}
+
+export function useShopSummary(): ShopSummary {
+  return summarize(useStockItems());
+}

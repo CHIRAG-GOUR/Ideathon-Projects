@@ -1,42 +1,29 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { Navbar } from '@/components/layout/Navbar';
-import { DemoGuideModal } from '@/components/common/DemoGuideModal';
+import { Providers } from '@/components/providers/Providers';
 
 export const metadata: Metadata = {
-  title: 'Visionary X — Smart Grocery Inventory Demo',
+  title: {
+    default: 'Smart Stock — Know what to sell first',
+    template: '%s · Smart Stock',
+  },
   description:
-    'Simple, interactive smart grocery inventory & waste prevention system for student demonstrations. Scan barcodes, check expiry dates, organize shelves, and eliminate food waste.',
+    'Smart Stock is a simple inventory assistant for grocery shops. Scan products, see expiry dates, organise your shelves and reduce avoidable waste.',
   icons: {
-    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🥬</text></svg>',
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%232F8F55"/><path d="M18 40c0-12 10-22 28-22 0 18-10 28-22 28-3 0-6-2-6-6z" fill="%23FFF8EC"/><path d="M22 44c6-8 12-13 20-18" stroke="%232F8F55" stroke-width="3" stroke-linecap="round"/></svg>',
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  themeColor: '#FFFBF3',
+  colorScheme: 'light',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <meta name="theme-color" content="#2D6A4F" />
-      </head>
-      <body className="min-h-screen bg-[#FBF9F5] text-[#1A2421] font-sans antialiased selection:bg-emerald-200 selection:text-emerald-950 flex flex-col justify-between">
-        <div>
-          <Navbar />
-          <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </main>
-        </div>
-
-        {/* Global Demo Guide Modal */}
-        <DemoGuideModal />
-
-        {/* Clean Light Footer */}
-        <footer className="border-t border-[#EAE2D2] py-4 bg-[#FAF7F0] text-center text-xs text-gray-500">
-          <p>Visionary X • Smart Grocery Inventory School Project Demo</p>
-        </footer>
+      <body className="min-h-screen bg-background font-sans text-ink antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
