@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "ideathon-projects"
+  },
+  "targets": {
+    "ideathon-projects": {
+      "hosting": {
+        "smart-stock": ["smart-stock-ideathon"]
+      }
+    }
+  }
+}

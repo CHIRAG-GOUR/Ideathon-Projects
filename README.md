@@ -20,7 +20,7 @@ knowing what needs attention first:
 | `/stock` | My Stock: six product cards with quantity, days left, status and shelf location. |
 | `/warehouse` | **3D warehouse game** (React Three Fiber). Walk as the shopkeeper, scan boxes, read the expiry and carry each box to Fresh, Sell Soon or Sell First. A *Simple shelves* mode offers the same game with taps only. |
 
-Old links keep working: `/scan → /scanner`, `/barcodes → /demo`, `/simulation → /warehouse`.
+Old links keep working (`/scan → /scanner`, `/barcodes → /demo`, `/simulation → /warehouse`) via redirects in `firebase.json`.
 
 There are two navigation contexts: the **website** (Home · What It Is · How It Works · Use Cases · Scanner · Warehouse · Demo · Try It) and the **app** (Home · Scan · My Stock · Warehouse, with a bottom tab bar on phones).
 
@@ -50,6 +50,31 @@ all six earn 600 and prevent ₹1,250 of potential waste.
 4. On a phone the camera only opens on **HTTPS** (or `localhost`). Deploy the site (for example to Vercel) or use an HTTPS tunnel, then open `/scanner` on the phone.
 
 No camera? Tap a product under *No printout nearby?* on the scanner page, or type the number in *Enter Barcode Manually*.
+
+## Deploy to Firebase Hosting (isolated site)
+
+The site is a static export (`out/`) deployed to its **own** Hosting site, `smart-stock-ideathon`, inside the
+`ideathon-projects` Firebase project. It deploys **only** that site (`--only hosting:smart-stock`): no Firestore,
+Functions, Storage or rules, and no other Hosting sites in the project are touched. There is no backend.
+
+One-time setup (on your machine):
+
+```bash
+npx firebase-tools login
+npm run firebase:create-site   # creates https://smart-stock-ideathon.web.app
+```
+
+If that site ID is already taken, pick another (e.g. `smart-stock-vx`), run
+`npx firebase-tools hosting:sites:create <your-id> --project ideathon-projects`, and put the same ID in `.firebaserc`
+under `targets → ideathon-projects → hosting → smart-stock`.
+
+Deploy (every time):
+
+```bash
+npm run deploy
+```
+
+The camera works there because `*.web.app` is served over HTTPS.
 
 ## How the scanner works
 

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "next build && npx -y firebase-tools@latest deploy --only hosting:smart-stock --project ideathon-projects",
+    "firebase:create-site": "npx -y firebase-tools@latest hosting:sites:create smart-stock-ideathon --project ideathon-projects"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
