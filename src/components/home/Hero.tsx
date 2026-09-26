@@ -19,10 +19,10 @@ const SHELF_ROWS: ProductArtId[][] = [
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-leaf-100/60 blur-3xl" />
-      <div className="pointer-events-none absolute -left-32 top-64 h-[360px] w-[360px] rounded-full bg-mango-100/70 blur-3xl" />
+      <div aria-hidden data-audit-ignore className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-leaf-100/60 blur-3xl" />
+      <div aria-hidden data-audit-ignore className="pointer-events-none absolute -left-32 top-64 h-[360px] w-[360px] rounded-full bg-mango-100/70 blur-3xl" />
       <div className="container-page relative grid items-center gap-12 pb-12 pt-8 sm:pt-12 lg:grid-cols-[1fr_1.05fr] lg:pb-16">
-        <div>
+        <div className="min-w-0">
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chip bg-white py-2 text-leaf-700 shadow-soft ring-1 ring-inset ring-leaf-100">
             <Sparkles className="h-4 w-4 text-mango-500" /> Smart inventory for neighbourhood grocery shops
           </motion.p>
@@ -30,7 +30,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="display-xl mt-6 text-[3.1rem] leading-[0.98] sm:text-7xl lg:text-[5.2rem]"
+            className="display-xl mt-6 text-[2.55rem] leading-[1] min-[380px]:text-[3.1rem] sm:text-7xl lg:text-[5.2rem]"
           >
             Know What to <span className="relative whitespace-nowrap text-leaf-600">Sell First.<svg viewBox="0 0 300 20" className="absolute -bottom-2 left-0 w-full" aria-hidden><path d="M4 14c80-10 200-12 292-4" stroke="#F5B633" strokeWidth="7" fill="none" strokeLinecap="round" /></svg></span>
           </motion.h1>
@@ -58,7 +58,7 @@ export function Hero() {
           </motion.ul>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.15, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
+        <motion.div className="min-w-0" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.15, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
           <InteractiveShop />
         </motion.div>
       </div>
@@ -117,8 +117,8 @@ function InteractiveShop() {
                 {SHELF_ROWS.map((row, r) => (
                   <div key={r} className={cn('relative', r > 0 && 'mt-6')}>
                     <div className="grid grid-cols-3 items-end gap-1 px-1">
-                      {row.map((id) => (
-                        <ShelfSlot key={id} id={id} below={r === 0} sorted={sorted.includes(id)} active={active === id} onHover={(on) => { touch(); setActive(on ? id : null); }} onSort={() => sort(id)} />
+                      {row.map((id, col) => (
+                        <ShelfSlot key={id} id={id} col={col} below={r === 0} sorted={sorted.includes(id)} active={active === id} onHover={(on) => { touch(); setActive(on ? id : null); }} onSort={() => sort(id)} />
                       ))}
                     </div>
                     <div className="shelf-plank h-3 rounded-md" />
@@ -176,6 +176,7 @@ function InteractiveShop() {
 
 function ShelfSlot({
   id,
+  col,
   below,
   sorted,
   active,
@@ -183,6 +184,7 @@ function ShelfSlot({
   onSort,
 }: {
   id: ProductArtId;
+  col: number;
   below: boolean;
   sorted: boolean;
   active: boolean;
@@ -221,13 +223,15 @@ function ShelfSlot({
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 420, damping: 28 }}
             className={cn(
-              'paper-tag pointer-events-none absolute left-1/2 z-20 w-40 p-3 text-left',
-              below ? 'top-[96%]' : 'bottom-[96%]'
+              'paper-tag pointer-events-none absolute z-20 w-[9.5rem] p-3 text-left sm:w-40',
+              below ? 'top-[96%]' : 'bottom-[96%]',
+              // Keep the tag inside the shop on narrow phones: outer columns open inwards.
+              col === 0 ? 'left-0' : col === 2 ? 'right-0' : 'left-1/2'
             )}
-            style={{ x: '-50%' }}
+            style={{ x: col === 1 ? '-50%' : 0 }}
             role="tooltip"
           >
-            <span className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-cream-300 ring-2 ring-white" />
+            <span className={cn('absolute -top-1.5 h-3 w-3 rounded-full bg-cream-300 ring-2 ring-white', col === 0 ? 'left-8' : col === 2 ? 'right-8' : 'left-1/2 -translate-x-1/2')} />
             <p className="font-display text-xl font-semibold leading-none text-ink">{product.name}</p>
             <p className="mt-1 text-xs font-semibold text-ink-muted">{product.quantity} units</p>
             <p className="mt-1 text-sm font-extrabold" style={{ color: ZONES[zone].ink }}>

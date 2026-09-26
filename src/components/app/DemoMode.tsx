@@ -151,8 +151,8 @@ export function DemoCoach() {
         <div className="flex items-center justify-between gap-2 bg-mango-100 px-4 py-2.5">
           <button onClick={() => setCollapsed((c) => !c)} className="flex min-w-0 items-center gap-2 text-sm font-extrabold text-mango-700" aria-expanded={!collapsed}>
             <Presentation className="h-4 w-4" />
-            <span className="truncate">
-              {demo.roundComplete ? 'Demo · Done! Scan the next one' : `Step ${demo.step}/5${collapsed && currentStep ? ` · ${currentStep.title}` : ' · Demo Mode'}`}
+            <span className="text-left leading-tight">
+              {demo.roundComplete ? 'Done! Scan the next product' : `Step ${demo.step}/5${collapsed && currentStep ? ` · ${currentStep.title}` : ' · Demo Mode'}`}
             </span>
             {collapsed ? <ChevronUp className="h-4 w-4 flex-none" /> : <ChevronDown className="h-4 w-4 flex-none" />}
           </button>

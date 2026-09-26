@@ -35,7 +35,7 @@ export function AppNav() {
       <header className="no-print sticky top-0 z-50 border-b border-cream-300 bg-background/90 backdrop-blur-md">
         <div className="container-page flex h-16 items-center justify-between gap-3">
           <Logo />
-          <nav className="hidden items-center gap-1 rounded-full bg-cream-200/70 p-1 md:flex" aria-label="App">
+          <nav className="hidden items-center gap-1 rounded-full bg-cream-200/70 p-1 lg:flex" aria-label="App">
             {APP_LINKS.map((l) => {
               const active = pathname === l.href;
               const Icon = l.icon;
@@ -66,7 +66,7 @@ export function AppNav() {
       </header>
 
       <nav
-        className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-cream-300 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+        className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-cream-300 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
         aria-label="App (mobile)"
       >
         <div className="grid grid-cols-4">

@@ -16,6 +16,13 @@ html {
   scroll-padding-top: 88px;
 }
 
+h1,
+h2,
+h3,
+p {
+  overflow-wrap: break-word;
+}
+
 html,
 body {
   background: #fffbf3;
@@ -52,10 +59,10 @@ body {
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold transition-all duration-200 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex max-w-full items-center justify-center gap-2 text-center rounded-full font-bold sm:whitespace-nowrap transition-all duration-200 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-lg {
-    @apply px-7 py-4 text-base;
+    @apply px-5 py-3.5 text-[15px] sm:px-7 sm:py-4 sm:text-base;
   }
   .btn-md {
     @apply px-5 py-3 text-sm;

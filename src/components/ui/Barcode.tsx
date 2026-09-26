@@ -40,6 +40,16 @@ export function Barcode({
         fontSize: 16,
         textMargin: 4,
       });
+      // Make the SVG scale with its container (JsBarcode writes fixed pixel sizes).
+      const svg = ref.current;
+      const w = parseFloat(svg.getAttribute('width') || '0');
+      const h = parseFloat(svg.getAttribute('height') || '0');
+      if (w && h) {
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.style.aspectRatio = `${w} / ${h}`;
+      }
     } catch (err) {
       console.error('Barcode render failed', err);
     }

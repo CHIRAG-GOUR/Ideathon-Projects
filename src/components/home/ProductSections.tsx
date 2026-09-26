@@ -16,7 +16,7 @@ export function ScannerBand() {
   return (
     <section id="scanner" className="scroll-mt-20 py-20 sm:py-28">
       <div className="container-page">
-        <div className="grid items-center gap-12 overflow-hidden rounded-5xl bg-mango-50 p-6 ring-1 ring-inset ring-mango-200 sm:p-12 lg:grid-cols-2">
+        <div className="grid items-center gap-8 overflow-hidden rounded-5xl bg-mango-50 p-5 ring-1 ring-inset ring-mango-200 sm:p-12 lg:grid-cols-2">
           <div>
             <SectionHeading
               eyebrow="The real scanner"
@@ -46,22 +46,22 @@ export function ScannerBand() {
               </div>
             </Reveal>
           </div>
-          <Reveal delay={0.15} className="relative h-[360px] sm:h-[420px]">
+          <Reveal delay={0.15} className="relative h-[280px] min-w-0 sm:h-[420px]">
             {fan.map((p, i) => {
               const z = ZONES[getRecommendedZone(p)];
               return (
                 <div
                   key={p.id}
-                  className="absolute left-1/2 top-1/2 w-[240px] rounded-3xl border-2 border-dashed border-cream-400 bg-white p-4 shadow-lift transition-transform duration-500 hover:z-10 hover:!rotate-0 hover:scale-105 sm:w-[270px]"
-                  style={{ transform: `translate(-50%, -50%) translate(${(i - 1) * 70}px, ${(i - 1) * 18}px) rotate(${(i - 1) * 9}deg)` }}
+                  className="absolute left-1/2 top-1/2 w-[200px] rounded-3xl border-2 border-dashed border-cream-400 bg-white p-3 shadow-lift [--dx:34px] [transform:translate(-50%,-50%)_translate(calc(var(--i)*var(--dx)),calc(var(--i)*14px))_rotate(calc(var(--i)*8deg))] sm:w-[270px] sm:p-4 sm:[--dx:70px]"
+                  style={{ '--i': i - 1 } as React.CSSProperties}
                 >
                   <div className="flex items-center gap-2">
                     <ProductArt id={p.id} className="h-10 w-10" />
-                    <p className="text-lg font-extrabold uppercase text-ink">{p.name}</p>
+                    <p className="text-base font-extrabold uppercase leading-tight text-ink sm:text-lg">{p.name}</p>
                     <span className="ml-auto h-3 w-3 rounded-full" style={{ background: z.color }} />
                   </div>
                   <Barcode value={p.barcode} height={56} moduleWidth={1.6} className="mx-auto mt-2 w-full" />
-                  <p className="text-center font-mono text-sm font-semibold tracking-[0.18em]">{p.barcode}</p>
+                  <p className="text-center font-mono text-xs font-semibold tracking-[0.12em] sm:text-sm sm:tracking-[0.18em]">{p.barcode}</p>
                 </div>
               );
             })}

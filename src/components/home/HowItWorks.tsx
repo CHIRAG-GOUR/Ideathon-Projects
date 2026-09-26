@@ -62,7 +62,7 @@ export function HowItWorks() {
             })}
           </ol>
 
-          <div className="relative mx-auto flex aspect-[4/3.4] w-full max-w-[560px] items-center justify-center overflow-hidden rounded-5xl bg-white shadow-lift ring-1 ring-cream-300">
+          <div className="relative mx-auto flex aspect-[4/4.6] w-full max-w-[560px] items-center justify-center overflow-hidden rounded-5xl min-[480px]:aspect-[4/3.4] bg-white shadow-lift ring-1 ring-cream-300">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -70,7 +70,7 @@ export function HowItWorks() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.35 }}
-                className="absolute inset-0 flex items-center justify-center p-6"
+                className="absolute inset-0 flex items-center justify-center p-4 sm:p-6"
               >
                 {step === 0 && <StageScan />}
                 {step === 1 && <StageUnderstand />}
@@ -131,7 +131,7 @@ function StageOrganize() {
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.1 }}
-          className={cn('flex items-center justify-between rounded-3xl p-4 ring-2', z === 'SELL_FIRST' ? 'bg-tomato-50 ring-tomato-400' : 'bg-cream-100 ring-transparent')}
+          className={cn('flex flex-wrap items-center justify-between gap-2 rounded-3xl p-3 ring-2 sm:p-4', z === 'SELL_FIRST' ? 'bg-tomato-50 ring-tomato-400' : 'bg-cream-100 ring-transparent')}
         >
           <div>
             <ZoneBadge zone={z} />

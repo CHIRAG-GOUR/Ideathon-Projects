@@ -18,7 +18,7 @@ export function FinalCTA() {
           <div className="px-6 pb-0 pt-12 sm:pt-16">
             <h2 className="display-xl mx-auto max-w-3xl text-4xl leading-[1.05] sm:text-6xl">Scan your stock. Put it in the right place. Waste less.</h2>
             <p className="mx-auto mt-5 max-w-xl text-lg text-ink-soft">It takes one barcode to see how it works.</p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col flex-wrap justify-center gap-3 sm:flex-row">
               <Link href="/scanner" className="btn btn-primary btn-lg">
                 <ScanLine className="h-5 w-5" /> Scan Your First Product
               </Link>

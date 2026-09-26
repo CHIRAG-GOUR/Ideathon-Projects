@@ -106,8 +106,8 @@ export function WarehouseGame() {
             >
               <ProductArt id={it.id} className="h-10 w-10 flex-none" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-ink">{it.name}</p>
-                <p className="truncate text-xs text-ink-muted">
+                <p className="text-sm font-bold leading-tight text-ink">{it.name}</p>
+                <p className="text-xs leading-tight text-ink-muted">
                   {state === 'placed'
                     ? `✓ ${ZONES[it.recommendedZone].label}`
                     : state === 'carrying'
@@ -354,7 +354,7 @@ function ScanCard({ productId, onClose }: { productId: string; onClose: () => vo
         </button>
       </div>
       <div className="mt-2 flex justify-center rounded-2xl bg-white ring-1 ring-cream-300">
-        <Barcode value={product.barcode} height={40} moduleWidth={1.5} className="w-[190px]" showValue />
+        <Barcode value={product.barcode} height={40} moduleWidth={1.5} className="w-full max-w-[190px]" showValue />
       </div>
       <div className="mt-3 flex items-center gap-3">
         <ProductArt id={product.id} className="h-14 w-14 flex-none" />

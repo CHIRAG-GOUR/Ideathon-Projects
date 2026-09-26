@@ -156,7 +156,7 @@ function HiddenStock() {
           </motion.div>
         ))}
         <motion.span
-          className="absolute left-[10%] top-3 rounded-lg bg-tomato-500 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white shadow-soft"
+          className="absolute left-[8%] top-5 rounded-lg bg-tomato-500 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white shadow-soft"
           variants={{
             hidden: { opacity: 0, scale: 1.6, rotate: -14 },
             show: { opacity: 1, scale: 1, rotate: -8, transition: { delay: 1.9, type: 'spring', stiffness: 300, damping: 14 } },

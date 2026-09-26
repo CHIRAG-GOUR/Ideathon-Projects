@@ -31,9 +31,9 @@ function BarcodeCard({ product }: { product: Product }) {
   return (
     <article
       data-card={product.id}
-      className="barcode-card flex break-inside-avoid flex-col rounded-[28px] border-2 border-dashed border-cream-400 bg-white p-5 print:h-[83mm] print:rounded-[6mm] print:border-[#bba77f] print:p-[4mm]"
+      className="barcode-card flex min-w-0 break-inside-avoid flex-col rounded-[28px] border-2 border-dashed border-cream-400 bg-white p-4 sm:p-5 print:h-[83mm] print:rounded-[6mm] print:border-[#bba77f] print:p-[4mm]"
     >
-      <header className="flex items-start gap-3">
+      <header className="flex flex-wrap items-start gap-3">
         <div className="flex h-16 w-16 flex-none items-center justify-center rounded-2xl print:h-[15mm] print:w-[15mm]" style={{ background: z.soft }}>
           <ProductArt id={product.id} data-art={product.id} className="h-14 w-14 print:h-[13mm] print:w-[13mm]" />
         </div>
@@ -48,7 +48,7 @@ function BarcodeCard({ product }: { product: Product }) {
 
       {/* Barcode: pure white area, no decoration, generous quiet zone */}
       <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-2xl bg-white print:mt-[2mm]">
-        <Barcode value={product.barcode} height={80} moduleWidth={2} className="w-[260px] print:w-[62mm]" />
+        <Barcode value={product.barcode} height={80} moduleWidth={2} className="w-full max-w-[260px] print:w-[62mm] print:max-w-none" />
         <p className="mt-1 font-mono text-lg font-semibold tracking-[0.2em] text-black print:text-[11pt]" data-testid={`barcode-number-${product.id}`}>
           {product.barcode}
         </p>
@@ -87,7 +87,7 @@ export function DemoKit() {
             <p className="eyebrow">
               <StickyNote className="h-4 w-4" /> Demo kit
             </p>
-            <h1 className="display-xl mt-3 text-5xl leading-[1.05] sm:text-6xl">Demo Barcodes</h1>
+            <h1 className="display-xl mt-3 text-[2.6rem] leading-[1.05] min-[380px]:text-5xl sm:text-6xl">Demo Barcodes</h1>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
               Print these barcodes and use them with the live scanner. Stick them on boxes, bottles, books — anything — and every
               scan shows the matching product.
@@ -129,7 +129,7 @@ export function DemoKit() {
       </div>
 
       <section className="container-page pb-16 print:max-w-none print:p-0">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 print:gap-[4mm]">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 print:gap-[4mm]">
           {PRODUCTS.map((p) => (
             <BarcodeCard key={p.id} product={p} />
           ))}
