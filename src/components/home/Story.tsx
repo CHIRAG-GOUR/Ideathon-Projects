@@ -22,7 +22,7 @@ export function WhatIs() {
         <div>
           <SectionHeading
             eyebrow="What is Visionary X?"
-            title={<>A digital helper for the grocery shop counter.</>}
+            title={<>Meet Visionary X — a digital helper for the grocery counter.</>}
             lead="Visionary X is a digital assistant for grocery shops. It helps shopkeepers keep track of products, understand which items are getting close to expiry, and organize stock so older products get sold first."
           />
           <Reveal delay={0.1} className="mt-8 grid gap-4 sm:grid-cols-3">

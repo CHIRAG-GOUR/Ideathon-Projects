@@ -27,7 +27,7 @@ export function BeforeAfter() {
         <div ref={ref} className="mt-14 grid gap-6 lg:grid-cols-2">
           <article className="overflow-hidden rounded-5xl bg-white shadow-soft ring-1 ring-inset ring-cream-300">
             <div className="flex items-center justify-between px-6 pt-5">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-tomato-600">Without Smart Inventory</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-tomato-600">Without Visionary X</p>
               <span className="text-xs font-bold text-ink-faint">Before</span>
             </div>
             <div className="p-4">
@@ -52,7 +52,7 @@ export function BeforeAfter() {
 
           <article className="overflow-hidden rounded-5xl bg-white shadow-lift ring-2 ring-inset ring-leaf-200">
             <div className="flex items-center justify-between px-6 pt-5">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-leaf-700">With Smart Inventory</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-leaf-700">With Visionary X</p>
               <span className="text-xs font-bold text-ink-faint">After</span>
             </div>
             <div className="p-4">

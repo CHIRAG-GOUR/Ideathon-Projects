@@ -9,7 +9,7 @@ export function SiteFooter() {
         <div>
           <Logo />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-muted">
-            A simple smart inventory assistant for grocery shops. Scan your stock, know what needs attention, put it in the
+            Visionary X is a simple smart inventory assistant for grocery shops. Scan your stock, know what needs attention, put it in the
             right place and waste less.
           </p>
         </div>

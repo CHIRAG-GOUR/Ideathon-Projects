@@ -24,7 +24,7 @@ export function Hero() {
       <div className="container-page relative grid items-center gap-12 pb-12 pt-8 sm:pt-12 lg:grid-cols-[1fr_1.05fr] lg:pb-16">
         <div className="min-w-0">
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chip bg-white py-2 text-leaf-700 shadow-soft ring-1 ring-inset ring-leaf-100">
-            <Sparkles className="h-4 w-4 text-mango-500" /> Smart inventory for neighbourhood grocery shops
+            <Sparkles className="h-4 w-4 flex-none text-mango-500" /> <span><strong className="font-extrabold">Visionary X</strong> · smart inventory for grocery shops</span>
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 18 }}
@@ -40,8 +40,7 @@ export function Hero() {
             transition={{ delay: 0.12, duration: 0.6 }}
             className="mt-7 max-w-xl text-lg leading-relaxed text-ink-soft sm:text-xl"
           >
-            Scan your grocery stock, understand expiry dates, organize your warehouse and reduce avoidable waste — all from one simple smart inventory
-            assistant.
+            Scan your grocery stock, understand expiry dates, organize your warehouse and reduce avoidable waste — all from Visionary X, one simple smart inventory assistant.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link href="/scanner" className="btn btn-primary btn-lg">

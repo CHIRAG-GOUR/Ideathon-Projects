@@ -102,7 +102,7 @@ function useTileTexture() {
 
 function Room({ onFloorClick }: { onFloorClick: (p: THREE.Vector3) => void }) {
   const tiles = useTileTexture();
-  const sign = useSignTexture('TODAY’S STOCK', 'Scan · Check expiry · Put it on the right shelf', '#2F8F55');
+  const sign = useSignTexture('VISIONARY X', 'Scan · Check expiry · Right shelf', '#2F8F55');
   const delivery = useFloorLabelTexture('NEW DELIVERY', '#A97C47');
 
   return (

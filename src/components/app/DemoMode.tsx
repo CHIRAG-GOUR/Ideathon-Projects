@@ -80,7 +80,7 @@ export function DemoModeDialog({ open, onClose }: { open: boolean; onClose: () =
                 <X className="h-5 w-5" />
               </button>
               <p className="eyebrow text-mango-700">
-                <Presentation className="h-4 w-4" /> Demo Mode
+                <Presentation className="h-4 w-4" /> Visionary X · Demo Mode
               </p>
               <h2 id="demo-title" className="display-xl mt-2 text-3xl">
                 Ready to present?
