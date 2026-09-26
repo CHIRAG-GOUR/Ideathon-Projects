@@ -40,7 +40,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-cream-300">
         <div className="container-page flex flex-col gap-2 py-5 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>Smart Stock · built by Team Visionary X for the Ideathon.</p>
+          <p>Visionary X · built for the Ideathon.</p>
           <p>Scan. Understand. Organise. Sell smarter.</p>
         </div>
       </div>

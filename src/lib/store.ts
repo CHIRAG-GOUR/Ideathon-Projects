@@ -180,7 +180,7 @@ export const useShop = create<ShopState>()(
         }),
     }),
     {
-      name: 'smart-stock-v2',
+      name: 'visionary-x-v1',
       version: 2,
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,

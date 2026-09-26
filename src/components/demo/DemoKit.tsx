@@ -124,8 +124,8 @@ export function DemoKit() {
       </section>
 
       <div className="print-only mb-[4mm]">
-        <p className="font-display text-[18pt] font-semibold">Smart Stock · Demo Barcodes</p>
-        <p className="text-[9pt] text-ink-muted">Cut along the dashed lines, stick on any object, then scan with the Smart Stock scanner.</p>
+        <p className="font-display text-[18pt] font-semibold">Visionary X · Demo Barcodes</p>
+        <p className="text-[9pt] text-ink-muted">Cut along the dashed lines, stick on any object, then scan with the Visionary X scanner.</p>
       </div>
 
       <section className="container-page pb-16 print:max-w-none print:p-0">

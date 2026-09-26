@@ -17,11 +17,11 @@ export function LogoMark({ className }: { className?: string }) {
 
 export function Logo({ href = '/', className, compact }: { href?: string; className?: string; compact?: boolean }) {
   return (
-    <Link href={href} className={cn('group flex items-center gap-2.5', className)} aria-label="Smart Stock home">
+    <Link href={href} className={cn('group flex items-center gap-2.5', className)} aria-label="Visionary X home">
       <LogoMark className="h-9 w-9 transition-transform duration-300 group-hover:-rotate-6" />
       {!compact && (
         <span className="whitespace-nowrap font-display text-[1.35rem] font-semibold leading-none tracking-tight text-ink">
-          Smart<span className="text-leaf-600"> Stock</span>
+          Visionary<span className="text-leaf-600"> X</span>
         </span>
       )}
     </Link>

@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "target": "smart-stock",
+    "target": "visionary-x",
     "public": "out",
     "cleanUrls": true,
     "trailingSlash": false,

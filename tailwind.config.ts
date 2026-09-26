@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Smart Stock design tokens — a light, fresh grocery palette.
+ * Visionary X design tokens — a light, fresh grocery palette.
  * cream (paper/background) · leaf (brand green) · mango · tomato · sky · soil (wood/cardboard) · ink (text)
  */
 const config: Config = {

@@ -1,5 +1,5 @@
 /**
- * Smart Stock — the single source of truth for demo products.
+ * Visionary X — the single source of truth for demo products.
  *
  * Every screen (home page, scanner, My Stock, dashboard, 3D warehouse, printable
  * barcode sheet) reads products from this file. Never redefine products anywhere else.

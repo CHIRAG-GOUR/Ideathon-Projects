@@ -1,10 +1,10 @@
-# Smart Stock — Know What to Sell First
+# Visionary X — Know What to Sell First
 
-> A smart inventory assistant for neighbourhood grocery shops, by Team Visionary X.
+> A smart inventory assistant for neighbourhood grocery shops, built for the Ideathon.
 > **Scan your stock. Know what needs attention. Put it in the right place. Waste less.**
 
 Grocery shops keep extra stock in storage. New deliveries get stacked in front, older products
-get hidden, and some expire before anyone notices. Smart Stock fixes the real problem — not
+get hidden, and some expire before anyone notices. Visionary X fixes the real problem — not
 knowing what needs attention first:
 
 **SCAN → IDENTIFY → CHECK EXPIRY → PRIORITIZE → ORGANIZE → SELL FIRST**
@@ -53,20 +53,20 @@ No camera? Tap a product under *No printout nearby?* on the scanner page, or typ
 
 ## Deploy to Firebase Hosting (isolated site)
 
-The site is a static export (`out/`) deployed to its **own** Hosting site, `smart-stock-ideathon`, inside the
-`ideathon-projects` Firebase project. It deploys **only** that site (`--only hosting:smart-stock`): no Firestore,
+The site is a static export (`out/`) deployed to its **own** Hosting site, `visionary-x-ideathon`, inside the
+`ideathon-projects` Firebase project. It deploys **only** that site (`--only hosting:visionary-x`): no Firestore,
 Functions, Storage or rules, and no other Hosting sites in the project are touched. There is no backend.
 
 One-time setup (on your machine):
 
 ```bash
 npx firebase-tools login
-npm run firebase:create-site   # creates https://smart-stock-ideathon.web.app
+npm run firebase:create-site   # creates https://visionary-x-ideathon.web.app
 ```
 
-If that site ID is already taken, pick another (e.g. `smart-stock-vx`), run
+If that site ID is already taken, pick another (e.g. `visionary-x-app`), run
 `npx firebase-tools hosting:sites:create <your-id> --project ideathon-projects`, and put the same ID in `.firebaserc`
-under `targets → ideathon-projects → hosting → smart-stock`.
+under `targets → ideathon-projects → hosting → visionary-x`.
 
 Deploy (every time):
 

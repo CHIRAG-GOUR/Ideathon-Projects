@@ -53,7 +53,7 @@ export async function buildBarcodeSheet(): Promise<HTMLCanvasElement> {
 
   ctx.fillStyle = '#26312A';
   ctx.font = `600 44px ${serif}`;
-  ctx.fillText('Smart Stock · Demo Barcodes', 60, 92);
+  ctx.fillText('Visionary X · Demo Barcodes', 60, 92);
   ctx.font = `500 22px ${sans}`;
   ctx.fillStyle = '#77817A';
   ctx.fillText('Cut along the dashed lines, stick on any object, then scan at /scanner.', 60, 130);
@@ -129,7 +129,7 @@ export async function downloadBarcodeSheet() {
   const url = canvas.toDataURL('image/png');
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'smart-stock-demo-barcodes.png';
+  a.download = 'visionary-x-demo-barcodes.png';
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -12,7 +12,7 @@ import { Reveal, SectionHeading } from '@/components/ui/Reveal';
 import { GENERATED_IMAGES } from '@/lib/assets';
 
 /* ------------------------------------------------------------------ */
-/* What is Smart Stock?                                                */
+/* What is Visionary X?                                                */
 /* ------------------------------------------------------------------ */
 
 export function WhatIs() {
@@ -21,9 +21,9 @@ export function WhatIs() {
       <div className="container-page grid items-center gap-14 lg:grid-cols-2">
         <div>
           <SectionHeading
-            eyebrow="What is Smart Stock?"
+            eyebrow="What is Visionary X?"
             title={<>A digital helper for the grocery shop counter.</>}
-            lead="Smart Stock is a digital assistant for grocery shops. It helps shopkeepers keep track of products, understand which items are getting close to expiry, and organize stock so older products get sold first."
+            lead="Visionary X is a digital assistant for grocery shops. It helps shopkeepers keep track of products, understand which items are getting close to expiry, and organize stock so older products get sold first."
           />
           <Reveal delay={0.1} className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
