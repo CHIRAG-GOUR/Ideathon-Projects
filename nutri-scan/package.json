@@ -1,0 +1,49 @@
+{
+  "name": "nutri-scan",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/unit/*.test.ts",
+    "test:e2e": "node tests/e2e/scanner.mjs",
+    "test:experience": "node tests/e2e/experience.mjs",
+    "test:website": "node tests/e2e/website.mjs",
+    "test:meals": "node tests/e2e/meals.mjs",
+    "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project demo-nutri-scan \"node tests/rules.test.mjs\"",
+    "firebase:setup": "npx -y firebase-tools@latest firestore:databases:create nutri-scan --location=asia-south1 --project ideathon-projects && npx -y firebase-tools@latest hosting:sites:create nutri-scan-ideathon --project ideathon-projects",
+    "deploy:rules": "npx -y firebase-tools@latest deploy --only firestore --project ideathon-projects",
+    "deploy": "npx -y firebase-tools@latest experiments:enable webframeworks && npx -y firebase-tools@latest deploy --only hosting:nutri-scan-ideathon,firestore --project ideathon-projects"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.3",
+    "clsx": "^2.1.1",
+    "firebase": "^11.10.0",
+    "framer-motion": "^11.11.9",
+    "lucide-react": "^0.453.0",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^2.5.4",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.3"
+  }
+}
