@@ -63,6 +63,16 @@ const saved = await page.evaluate(() => {
 });
 check(saved && saved.kcal === 742 && saved.items === 3 && saved.expiry === null, `saved meal keeps what you ate (${JSON.stringify(saved)})`);
 
+// --- Every scan is stored in Firestore with its full result (emulator) ---
+await page.waitForTimeout(2500); // sync is debounced
+const api = 'http://127.0.0.1:8080/v1/projects/demo-nutri-scan/databases/nutri-scan/documents';
+const users = await fetch(`${api}/users?pageSize=500`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json());
+const me = (users.documents ?? []).sort((x, y) => y.updateTime.localeCompare(x.updateTime))[0]?.name;
+const scanDocs = me ? (await fetch(`http://127.0.0.1:8080/v1/${me}/scans?pageSize=50`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json())).documents ?? [] : [];
+const stored = scanDocs.map((d) => d.fields?.food?.mapValue?.fields).find((f) => f?.product?.mapValue?.fields?.name?.stringValue === 'Aloo Paratha');
+const items = stored?.product?.mapValue?.fields?.nutrition?.mapValue?.fields?.meal?.mapValue?.fields?.components?.arrayValue?.values?.length;
+check(Boolean(stored) && items === 4 && stored.source?.stringValue === 'photo', `scan saved to Firebase with its full plate (${items} items, grade ${stored?.grade?.stringValue})`);
+
 // --- Typed search from the scan screen ---
 await mode('meal_thali');
 await page.click('[data-testid="scan-again"]').catch(() => undefined);

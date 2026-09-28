@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cloud">#F5F8FE</color>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/cloud</item>
+        <item name="android:statusBarColor">@color/cloud</item>
+        <item name="android:navigationBarColor">@color/cloud</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">#26B9A5</item>
+    </style>
+</resources>

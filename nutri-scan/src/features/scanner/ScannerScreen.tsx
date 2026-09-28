@@ -68,7 +68,7 @@ export function ScannerScreen() {
   }, [phase]);
 
   const handleOutcome = useCallback(
-    (out: PipelineOutcome) => {
+    (out: PipelineOutcome, source: 'photo' | 'text') => {
       if (!out.ok) {
         feedback.unsure();
         setError(out.message);
@@ -84,6 +84,7 @@ export function ScannerScreen() {
         emoji: r.type === 'unknown' ? '🤔' : r.emoji,
         detail: r.type === 'food' ? (r.score ? `Nutri score ${r.score.grade}` : CATEGORY_META[r.product.category].label) : r.type === 'non_food' ? 'Not food' : 'Couldn’t identify',
         confidence: r.confidence,
+        food: r.type === 'food' ? { product: r.product, grade: r.score?.grade ?? null, source } : null,
       });
       if (r.type === 'food') feedback.food();
       else if (r.type === 'non_food') feedback.notFood();
@@ -98,7 +99,7 @@ export function ScannerScreen() {
       setQuery(null);
       setPhase('analyzing');
       setError(null);
-      handleOutcome(await recognizePhoto(prepared));
+      handleOutcome(await recognizePhoto(prepared), 'photo');
     },
     [handleOutcome]
   );
@@ -111,7 +112,7 @@ export function ScannerScreen() {
       setQuery(q);
       setPhase('searching');
       setError(null);
-      handleOutcome(await recognizeQuery(q));
+      handleOutcome(await recognizeQuery(q), 'text');
     },
     [handleOutcome]
   );

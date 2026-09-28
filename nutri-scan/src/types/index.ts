@@ -224,6 +224,8 @@ export interface ScanHistoryEntry {
   emoji: string;
   detail: string | null;
   confidence: number;
+  /** Full result for food scans, so every scan is kept (and synced), not just the ones added to My Food. No photo. */
+  food?: { product: Product; grade: NutriGrade | null; source: 'photo' | 'text' } | null;
 }
 
 export interface UsageEntry {
