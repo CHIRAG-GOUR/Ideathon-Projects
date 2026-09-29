@@ -76,6 +76,56 @@ final class Sms {
         }
     }
 
+    /** Approximate address from Android's geocoder (needs internet on most phones); null when unavailable. Max 3 s. */
+    static String area(Context c, final double lat, final double lng) {
+        if (!android.location.Geocoder.isPresent()) return null;
+        final android.location.Geocoder g = new android.location.Geocoder(c, Locale.ENGLISH);
+        final String[] out = {null};
+        Thread t = new Thread(new Runnable() {
+            @Override
+            @SuppressWarnings("deprecation")
+            public void run() {
+                try {
+                    java.util.List<android.location.Address> a = g.getFromLocation(lat, lng, 1);
+                    if (a != null && !a.isEmpty()) out[0] = a.get(0).getAddressLine(0);
+                } catch (Exception ignored) {
+                }
+            }
+        });
+        t.start();
+        try {
+            t.join(3000);
+        } catch (InterruptedException ignored) {
+        }
+        return out[0];
+    }
+
+    /** Opens the user's own WhatsApp chat with this number, message pre-filled. WhatsApp requires the user to tap Send. */
+    static boolean whatsapp(Context c, String phone, String text) {
+        String digits = phone.replaceAll("[^0-9]", "");
+        Uri u = Uri.parse("https://api.whatsapp.com/send?phone=" + digits + "&text=" + Uri.encode(text));
+        for (String pkg : new String[]{"com.whatsapp", "com.whatsapp.w4b"}) {
+            try {
+                c.startActivity(new Intent(Intent.ACTION_VIEW, u).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return true;
+            } catch (Exception ignored) {
+            }
+        }
+        return false;
+    }
+
+    /** The user's own email app, addressed to the contacts, pre-filled. */
+    static boolean email(Context c, String[] to, String subject, String body) {
+        Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).putExtra(Intent.EXTRA_EMAIL, to)
+                .putExtra(Intent.EXTRA_SUBJECT, subject).putExtra(Intent.EXTRA_TEXT, body).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            c.startActivity(i);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // ---- message text: same templates and placeholders as shared/src/message.ts ----
 
     static String coord(double v) {
@@ -88,10 +138,10 @@ final class Sms {
         String coords = "";
         if (loc != null) {
             double la = loc.optDouble("latitude"), lo = loc.optDouble("longitude");
-            locline = (loc.optBoolean("lastKnown") ? "Last known location" : "Location") + ": https://maps.google.com/?q=" + coord(la) + "," + coord(lo);
+            locline = "\uD83D\uDCCD " + (loc.optBoolean("lastKnown") ? "Last known location" : "Location") + ": https://maps.google.com/?q=" + coord(la) + "," + coord(lo);
             coords = "Lat " + coord(la) + " Lng " + coord(lo) + " (" + (loc.isNull("accuracy") ? "unknown" : "±" + Math.round(loc.optDouble("accuracy")) + " m") + ")";
         } else {
-            locline = "Location: not available yet";
+            locline = "\uD83D\uDCCD Location: not available yet";
         }
         String time = time(System.currentTimeMillis(), cfg.optString("timeZone", "Asia/Kolkata"));
         Matcher m = Pattern.compile("\\{(\\w+)\\}").matcher(template);
@@ -104,12 +154,22 @@ final class Sms {
             else if ("time".equals(k)) v = time;
             else if ("emergency".equals(k)) v = cfg.optString("emergencyNumber", "112");
             else if ("live".equals(k)) v = liveUrl != null ? "Live location: " + liveUrl + "\n" : "";
+            else if ("area".equals(k)) v = extras != null && extras.optString("area").length() > 0 ? "\uD83C\uDFE0 Area (approx.): " + extras.optString("area") : "";
             else if (extras != null && extras.has(k)) v = extras.optString(k);
             else v = "";
             m.appendReplacement(out, Matcher.quoteReplacement(v));
         }
         m.appendTail(out);
         return out.toString().replaceAll("\n{2,}", "\n").trim();
+    }
+
+    static JSONObject areaExtras(JSONObject sos) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("area", sos == null || sos.isNull("area") ? "" : sos.optString("area", ""));
+        } catch (org.json.JSONException ignored) {
+        }
+        return o;
     }
 
     static String time(long ms, String tz) {
@@ -123,5 +183,5 @@ final class Sms {
         return t != null && t.has(key) ? t.optString(key) : fallback;
     }
 
-    static final String DEFAULT_SOS = "SOS ALERT\n{name} may be in danger and needs help.\n{locline}\n{coords}\nTime: {time}\n{live}Please call {name} and call {emergency} if needed.\n- Shevolution";
+    static final String DEFAULT_SOS = "\uD83C\uDD98 SOS! I NEED HELP!\n{name} is in DANGER and needs help NOW.\n{locline}\n{coords}\n{area}\n\uD83D\uDD52 Time: {time}\n{live}\uD83D\uDCDE Call me NOW. If I don't answer, call {emergency} and come to this location.\n- Shevolution SOS";
 }

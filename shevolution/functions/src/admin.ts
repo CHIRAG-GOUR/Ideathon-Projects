@@ -13,7 +13,11 @@ export function db(): Firestore {
   if (!firestore) {
     app = getApps().find((a) => a.name === 'shevolution') ?? initializeApp({}, 'shevolution');
     firestore = getFirestore(app, DATABASE_ID);
-    firestore.settings({ ignoreUndefinedProperties: true });
+    try {
+      firestore.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      /* already configured by another copy of this module (tests) */
+    }
   }
   return firestore;
 }

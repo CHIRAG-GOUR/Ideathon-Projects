@@ -12,6 +12,7 @@ import { dial } from '@/lib/native';
 import { Button, Card, E3d, Sheet, cn } from '@/components/ui';
 import { HoldButton } from '@/components/HoldButton';
 import { Chat } from '../live/Chat';
+import { AuthoritiesPanel, ShareChannels } from './Channels';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-blush-100" /> });
 
@@ -105,7 +106,6 @@ export function Emergency({ sos, region, contacts, demo, onEndHold, onKeep, onRe
     },
     ...sos.contacts.map((c) => ({ label: c.name, state: c.state, text: c.detail.toUpperCase() })),
     { label: 'Live location', state: sos.live, text: sos.live === 'ok' ? 'SHARING' : sos.live === 'queued' ? 'WAITING FOR NETWORK' : sos.live === 'off' ? 'OFF' : sos.live === 'failed' ? 'NOT SHARED' : 'STARTING…' },
-    { label: `Emergency service (${region.primary.number})`, state: 'available', text: 'CALL AVAILABLE' },
     { label: 'Cloud sync', state: sos.cloud, text: sos.cloud === 'ok' ? 'SYNCED' : sos.cloud === 'queued' ? 'OFFLINE · QUEUED' : sos.cloud === 'off' ? 'NOT SIGNED IN' : sos.cloud === 'failed' ? 'FAILED · RETRYING' : 'SYNCING…' },
   ];
 
@@ -185,6 +185,9 @@ export function Emergency({ sos, region, contacts, demo, onEndHold, onKeep, onRe
           </ul>
           {demo && <p className="mt-2 text-xs font-bold text-plum">DEMONSTRATION ONLY — no SMS, call or location was sent.</p>}
         </Card>
+
+        <ShareChannels contacts={contacts} demo={demo} />
+        <AuthoritiesPanel loc={loc} emergency={region.primary.number} />
 
         {cloud && sos.sosId && <Chat sosId={sos.sosId} messages={messages} myUid={auth().currentUser?.uid} quick={["I'm okay for now.", 'Please call me.', 'I need help now.']} />}
 

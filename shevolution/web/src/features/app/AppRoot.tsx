@@ -88,7 +88,7 @@ export function AppRoot() {
     if (uid && profile === null) {
       saveProfile(uid, {
         name: user?.displayName || 'Me',
-        phone: null,
+        phone: user?.phoneNumber ?? null,
         email: user?.email ?? null,
         profile: { shareMedical: false },
         settings: { ...DEFAULT_SETTINGS, region: native?.region ?? 'IN' },
@@ -322,7 +322,7 @@ function Welcome({ onSkip, onDemo }: { onSkip: () => void; onDemo: () => void })
         <p className="mt-2 max-w-[24ch] text-sm text-white/85">Alert the people you trust, share your live location, and keep your journey visible.</p>
       </motion.div>
       <div className="rounded-4xl bg-white p-5 shadow-soft">
-        <SignIn intro="Create an account to build your Safety Circle." />
+        <SignIn intro="Sign up with your mobile number — you\'ll log in with it too." />
       </div>
       <div className="grid gap-2 text-center">
         <button onClick={onSkip} className="py-2 text-sm font-bold text-ink-soft">

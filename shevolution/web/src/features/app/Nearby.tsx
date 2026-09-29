@@ -15,6 +15,7 @@ const TABS: { kind: HelpKind; label: string; icon: string }[] = [
   { kind: 'hospital', label: 'Hospitals', icon: 'hospital' },
   { kind: 'pharmacy', label: 'Pharmacy', icon: 'pharmacy' },
   { kind: 'fire', label: 'Fire', icon: 'fire' },
+  { kind: 'army', label: 'Army', icon: 'shield' },
 ];
 
 export function Nearby({ region }: { region: RegionConfig }) {
@@ -53,7 +54,7 @@ export function Nearby({ region }: { region: RegionConfig }) {
         {region.primary.note && <p className="mt-2 text-xs text-ink-muted">{region.primary.note}</p>}
       </Card>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {TABS.map((t) => (
           <button key={t.kind} onClick={() => setTab(t.kind)} className={cn('flex flex-col items-center gap-1 rounded-2xl py-2.5 text-xs font-bold', tab === t.kind ? 'bg-ink text-white' : 'bg-white text-ink-soft shadow-soft')}>
             <E3d name={t.icon} size={28} />

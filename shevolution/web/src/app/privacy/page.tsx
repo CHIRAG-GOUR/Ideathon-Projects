@@ -65,7 +65,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: 'Authorities',
     body: [
-      'Shevolution has no official data connection to 112 or the police. Nothing is sent to any authority automatically. "Call 112" opens your phone’s dialer. The app never says the police were notified or dispatched.',
+      'Shevolution has no official data connection to 112, the police or the army. The "nearest police & army" panel on the SOS screen is a SIMULATION in this version — nothing is sent to them. "Call 112" opens your phone’s dialer.',
     ],
   },
   {

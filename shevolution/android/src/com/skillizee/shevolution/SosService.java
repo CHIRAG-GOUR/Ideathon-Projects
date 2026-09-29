@@ -129,7 +129,7 @@ public class SosService extends Service {
             Events.emit("sos_activated", "sosId", sos.optString("sosId"), "startedAt", sos.optString("startedAt"), "contacts", contactList(sos));
         }
         startLocation();
-        if (!sos.optBoolean("smsDispatched")) main.postDelayed(dispatchSms, 6000); // at most 6 s wait for a fresh fix
+        if (!sos.optBoolean("smsDispatched")) main.postDelayed(dispatchSms, 8000); // at most 8 s wait for a precise fix, then the best available
         int esc = settings.optInt("escalateAfterMin", 5);
         if (esc > 0 && !sos.optBoolean("escalated")) {
             long due = Store.parseIso(sos.optString("startedAt")) + esc * 60_000L - System.currentTimeMillis();
@@ -156,6 +156,13 @@ public class SosService extends Service {
     private final Runnable dispatchSms = new Runnable() {
         @Override
         public void run() {
+            bg.post(doDispatch); // geocoding blocks; keep the main thread free
+        }
+    };
+
+    private final Runnable doDispatch = new Runnable() {
+        @Override
+        public void run() {
             JSONObject sos;
             synchronized (Sos.LOCK) {
                 sos = store.get("sos");
@@ -168,7 +175,20 @@ public class SosService extends Service {
             }
             JSONObject cfg = store.config();
             JSONObject loc = sos.optJSONObject("lastLocation");
-            String origin = cfg.optString("origin", "https://shevolution-ideathon.web.app");
+            String area = loc == null ? null : Sms.area(SosService.this, loc.optDouble("latitude"), loc.optDouble("longitude"));
+            JSONObject extras = new JSONObject();
+            try {
+                extras.put("area", area == null ? "" : area);
+                synchronized (Sos.LOCK) {
+                    JSONObject cur = store.get("sos");
+                    if (cur != null) {
+                        cur.put("area", area == null ? JSONObject.NULL : area);
+                        store.put("sos", cur);
+                    }
+                }
+            } catch (JSONException ignored) {
+            }
+            String origin = cfg.optString("origin", "https://shevolution.web.app");
             String tpl = Sms.template(cfg, "sos", Sms.DEFAULT_SOS);
             boolean direct = Sms.canSendDirect(SosService.this);
             List<String> composer = new ArrayList<>();
@@ -180,7 +200,7 @@ public class SosService extends Service {
                 String live = k.has("token") ? origin + "/e/" + k.optString("token") : null;
                 if (direct) {
                     try {
-                        Sms.send(SosService.this, k.optString("phone"), Sms.fill(tpl, cfg, loc, live, null), "sos", k.optString("id"));
+                        Sms.send(SosService.this, k.optString("phone"), Sms.fill(tpl, cfg, loc, live, extras), "sos", k.optString("id"));
                     } catch (Exception e) {
                         Sos.setSms(SosService.this, k.optString("id"), "failed", "device", "could not send");
                     }
@@ -191,8 +211,19 @@ public class SosService extends Service {
             }
             if (!composer.isEmpty()) {
                 // One message for everyone, so no personal live link in it.
-                boolean opened = Sms.compose(SosService.this, composer.toArray(new String[0]), Sms.fill(tpl, cfg, loc, null, null));
+                boolean opened = Sms.compose(SosService.this, composer.toArray(new String[0]), Sms.fill(tpl, cfg, loc, null, extras));
                 for (String id : composerIds) Sos.setSms(SosService.this, id, opened ? "not_permitted" : "failed", "composer", opened ? null : "Messages app unavailable");
+            }
+            // WhatsApp to the primary contact, pre-filled from the user's own WhatsApp (they tap Send).
+            if (composer.isEmpty()) {
+                for (int i = 0; ks != null && i < ks.length(); i++) {
+                    JSONObject k = ks.optJSONObject(i);
+                    if (k.isNull("phone")) continue;
+                    String live = k.has("token") ? origin + "/e/" + k.optString("token") : null;
+                    boolean ok = Sms.whatsapp(SosService.this, k.optString("phone"), Sms.fill(tpl, cfg, loc, live, extras));
+                    Events.emit("sos_whatsapp", "id", k.optString("id"), "name", k.optString("name"), "state", ok ? "queued" : "off");
+                    break;
+                }
             }
             main.postDelayed(autoCall, 1500);
             bg.post(syncTask);
@@ -213,7 +244,7 @@ public class SosService extends Service {
                     String live = k.has("token") ? cfg.optString("origin") + "/e/" + k.optString("token") : null;
                     Sos.setSms(SosService.this, id, "pending", "device", null);
                     try {
-                        Sms.send(SosService.this, k.optString("phone"), Sms.fill(Sms.template(cfg, "sos", Sms.DEFAULT_SOS), cfg, sos.optJSONObject("lastLocation"), live, null), "sos", id);
+                        Sms.send(SosService.this, k.optString("phone"), Sms.fill(Sms.template(cfg, "sos", Sms.DEFAULT_SOS), cfg, sos.optJSONObject("lastLocation"), live, Sms.areaExtras(sos)), "sos", id);
                     } catch (Exception e) {
                         Sos.setSms(SosService.this, id, "failed", "device", "could not send");
                     }
@@ -257,7 +288,7 @@ public class SosService extends Service {
                 if (!k.optBoolean("sms")) continue;
                 String live = k.has("token") ? cfg.optString("origin") + "/e/" + k.optString("token") : null;
                 try {
-                    Sms.send(SosService.this, k.optString("phone"), Sms.fill(Sms.template(cfg, "escalation", Sms.DEFAULT_SOS), cfg, sos.optJSONObject("lastLocation"), live, null), "escalation", k.optString("id"));
+                    Sms.send(SosService.this, k.optString("phone"), Sms.fill(Sms.template(cfg, "escalation", Sms.DEFAULT_SOS), cfg, sos.optJSONObject("lastLocation"), live, Sms.areaExtras(sos)), "escalation", k.optString("id"));
                 } catch (Exception ignored) {
                 }
             }
@@ -539,7 +570,7 @@ public class SosService extends Service {
             synchronized (Sos.LOCK) {
                 JSONObject sos = store.get("sos");
                 if (!Sos.isActive(sos)) return;
-                firstFresh = !lastKnown && !sos.optBoolean("smsDispatched");
+                firstFresh = !lastKnown && l.hasAccuracy() && l.getAccuracy() <= 25 && !sos.optBoolean("smsDispatched");
                 try {
                     sos.put("lastLocation", f).put("locationFailed", false);
                 } catch (JSONException ignored) {
@@ -555,7 +586,7 @@ public class SosService extends Service {
             Events.emit("sos_location", "location", f);
             if (firstFresh) {
                 main.removeCallbacks(dispatchSms);
-                main.post(dispatchSms); // a fresh fix arrived: text the circle right away
+                main.post(dispatchSms); // a precise fix arrived: text the circle right away
             }
         }
         if (tripMode && !lastKnown) onTripFix(l, f, now);

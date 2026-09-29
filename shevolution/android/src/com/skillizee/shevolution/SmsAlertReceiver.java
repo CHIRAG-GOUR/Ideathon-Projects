@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
  * full-screen where allowed). Only the text of that one message is read, on the phone; nothing is uploaded.
  */
 public class SmsAlertReceiver extends BroadcastReceiver {
-    private static final Pattern LINK = Pattern.compile("shevolution-ideathon\\.web\\.app/e/([A-Za-z0-9_-]{16,64})");
-    private static final Pattern NAME = Pattern.compile("\\n(.+?) (may be in danger|has not had a response)");
+    private static final Pattern LINK = Pattern.compile("shevolution\\.web\\.app/e/([A-Za-z0-9_-]{16,64})");
+    private static final Pattern NAME = Pattern.compile("\\n(.+?) (is in DANGER|has had NO response)");
     private static final Pattern MAPS = Pattern.compile("maps\\.google\\.com/\\?q=(-?[0-9.]+),(-?[0-9.]+)");
 
     @Override
@@ -31,7 +31,7 @@ public class SmsAlertReceiver extends BroadcastReceiver {
         StringBuilder sb = new StringBuilder();
         for (SmsMessage m : parts) if (m != null && m.getMessageBody() != null) sb.append(m.getMessageBody());
         String body = sb.toString();
-        if (!body.contains("- Shevolution") || !(body.startsWith("SOS ALERT") || body.startsWith("SOS STILL ACTIVE"))) return;
+        if (!body.contains("- Shevolution SOS") || !(body.contains("SOS! I NEED HELP") || body.contains("SOS STILL ACTIVE"))) return;
 
         Matcher name = NAME.matcher(body), link = LINK.matcher(body), maps = MAPS.matcher(body);
         String who = name.find() ? name.group(1) : "Someone in your circle";
@@ -43,7 +43,7 @@ public class SmsAlertReceiver extends BroadcastReceiver {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         Notification.Builder b = Notifs.builder(c, Notifs.SOS)
                 .setContentTitle("🚨 SOS ALERT")
-                .setContentText(who + " may be in danger — tap to see their location")
+                .setContentText(who + " needs help NOW — tap to see their location")
                 .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setContentIntent(pi)
                 .setCategory(Notification.CATEGORY_ALARM)

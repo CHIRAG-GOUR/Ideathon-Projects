@@ -37,7 +37,7 @@ export default function Dashboard() {
       <header className="border-b border-line bg-white">
         <div className="page flex h-16 items-center justify-between">
           <Link href="/"><Logo size={30} /></Link>
-          {uid && <span className="text-sm font-semibold text-ink-muted">{user?.email}</span>}
+          {uid && <span className="text-sm font-semibold text-ink-muted">{user?.phoneNumber ?? user?.email}</span>}
         </div>
       </header>
       <main className="page py-6">

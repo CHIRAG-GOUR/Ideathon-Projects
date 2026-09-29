@@ -3,7 +3,7 @@
 // Phone numbers are shown only when OpenStreetMap has one tagged; nothing is invented.
 import { distanceM } from '@shared/geo';
 
-export type HelpKind = 'police' | 'hospital' | 'pharmacy' | 'fire';
+export type HelpKind = 'police' | 'hospital' | 'pharmacy' | 'fire' | 'army';
 export interface HelpPlace {
   id: string;
   kind: HelpKind;
@@ -19,7 +19,7 @@ const AMENITY: Record<string, HelpKind> = { police: 'police', hospital: 'hospita
 const OVERPASS = process.env.NEXT_PUBLIC_OVERPASS_URL ?? 'https://overpass-api.de/api/interpreter';
 
 export async function nearbyHelp(lat: number, lng: number, radius = 3000): Promise<HelpPlace[]> {
-  const q = `[out:json][timeout:20];(nwr["amenity"~"^(police|hospital|clinic|pharmacy|fire_station)$"](around:${radius},${lat},${lng}););out center tags 120;`;
+  const q = `[out:json][timeout:20];(nwr["amenity"~"^(police|hospital|clinic|pharmacy|fire_station)$"](around:${radius},${lat},${lng});nwr["military"~"^(barracks|base|office|checkpoint)$"](around:${Math.max(radius, 15000)},${lat},${lng});nwr["landuse"="military"]["name"](around:${Math.max(radius, 15000)},${lat},${lng}););out center tags 150;`;
   const res = await fetch(OVERPASS, { method: 'POST', body: new URLSearchParams({ data: q }) });
   if (!res.ok) throw new Error('Could not load nearby places right now.');
   const j = (await res.json()) as { elements: { id: number; type: string; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[] };
@@ -27,13 +27,13 @@ export async function nearbyHelp(lat: number, lng: number, radius = 3000): Promi
     .map((e): HelpPlace | null => {
       const la = e.lat ?? e.center?.lat;
       const lo = e.lon ?? e.center?.lon;
-      const kind = AMENITY[e.tags?.amenity ?? ''];
+      const kind: HelpKind | undefined = e.tags?.military || e.tags?.landuse === 'military' ? 'army' : AMENITY[e.tags?.amenity ?? ''];
       if (la == null || lo == null || !kind) return null;
       const t = e.tags ?? {};
       return {
         id: `${e.type}/${e.id}`,
         kind,
-        name: t.name ?? t['name:en'] ?? ({ police: 'Police station', hospital: 'Hospital', pharmacy: 'Pharmacy', fire: 'Fire station' } as const)[kind],
+        name: t.name ?? t['name:en'] ?? ({ police: 'Police station', hospital: 'Hospital', pharmacy: 'Pharmacy', fire: 'Fire station', army: 'Army establishment' } as const)[kind],
         latitude: la,
         longitude: lo,
         phone: t.phone ?? t['contact:phone'] ?? null,

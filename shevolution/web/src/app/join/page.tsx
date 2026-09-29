@@ -1,12 +1,12 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RecaptchaVerifier, linkWithPhoneNumber, sendEmailVerification, type ConfirmationResult } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { api } from '@/lib/api';
 import { useAuthUser } from '@/lib/data';
-import { SignIn, authMessage } from '@/components/SignIn';
-import { Button, Card, E3d, Field, Logo, Spinner, inputCls } from '@/components/ui';
+import { SignIn } from '@/components/SignIn';
+import { Button, Card, E3d, Logo, Spinner } from '@/components/ui';
 
 interface Invite {
   ownerName: string;
@@ -71,12 +71,14 @@ export default function Join() {
                 </a>
               </div>
             </Card>
-          ) : !ready ? null : !user || user.isAnonymous ? (
+          ) : !ready ? null : (
             <Card className="mt-6">
-              <SignIn intro="Sign in or create an account. You'll verify your phone or email next." />
+              {!user || user.isAnonymous || !user.phoneNumber ? (
+                <SignIn intro="Verify your mobile number to join. Use the number the invitation was sent to." />
+              ) : (
+                <Accept token={token} phone={user.phoneNumber} onDone={() => setDone(true)} />
+              )}
             </Card>
-          ) : (
-            <Verify invite={invite} token={token} onDone={() => setDone(true)} />
           )}
         </motion.div>
       )}
@@ -84,98 +86,24 @@ export default function Join() {
   );
 }
 
-function Verify({ invite, token, onDone }: { invite: Invite; token: string; onDone: () => void }) {
-  const [phone, setPhone] = useState('+91');
-  const [code, setCode] = useState('');
-  const [confirm, setConfirm] = useState<ConfirmationResult | null>(null);
+/** Signed in with a verified number: the server checks it matches the invited contact. */
+function Accept({ token, phone, onDone }: { token: string; phone: string; onDone: () => void }) {
   const [msg, setMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const captcha = useRef<RecaptchaVerifier>();
-  const user = auth().currentUser!;
-
-  const accept = async () => {
-    await user.getIdToken(true);
-    await api('/invite/accept', { token });
-    onDone();
-  };
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true);
-    setMsg(null);
-    try {
-      await fn();
-    } catch (e) {
-      setMsg(authMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const emailMatches = invite.emailHint && user.email;
-  return (
-    <div className="mt-6 space-y-4">
-      {invite.phoneHint && (
-        <Card>
-          <h2 className="font-extrabold">Verify your phone number</h2>
-          <p className="mt-1 text-sm text-ink-muted">Enter the number ending in {invite.phoneHint.slice(-3)}. We&apos;ll text you a code.</p>
-          {!confirm ? (
-            <div className="mt-3 space-y-3">
-              <Field label="Mobile number (with country code)">
-                <input className={inputCls} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))} />
-              </Field>
-              <div id="recaptcha" />
-              <Button
-                className="w-full"
-                disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    captcha.current ??= new RecaptchaVerifier(auth(), 'recaptcha', { size: 'invisible' });
-                    setConfirm(await linkWithPhoneNumber(user, phone, captcha.current));
-                  })
-                }
-              >
-                Send code
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-3 space-y-3">
-              <Field label="6-digit code">
-                <input className={inputCls} inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-              </Field>
-              <Button className="w-full" disabled={busy || code.length !== 6} onClick={() => run(async () => {
-                await confirm.confirm(code);
-                await accept();
-              })}>
-                Verify and join
-              </Button>
-            </div>
-          )}
-        </Card>
-      )}
-      {invite.emailHint && (
-        <Card>
-          <h2 className="font-extrabold">Or verify by email</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Invitation email: {invite.emailHint}. You&apos;re signed in as {user.email ?? 'a phone account'}.
-          </p>
-          <div className="mt-3 grid gap-2">
-            {emailMatches && !user.emailVerified && (
-              <Button variant="white" disabled={busy} onClick={() => run(async () => {
-                await sendEmailVerification(user);
-                setMsg('Verification email sent. Open the link, then tap "I verified my email".');
-              })}>
-                Send verification email
-              </Button>
-            )}
-            <Button disabled={busy} onClick={() => run(async () => {
-              await user.reload();
-              await accept();
-            })}>
-              I verified my email
-            </Button>
-          </div>
-        </Card>
-      )}
-      {msg && <p className="text-sm font-semibold text-sos-700">{msg}</p>}
+  useEffect(() => {
+    api('/invite/accept', { token }).then(onDone, (e) => setMsg((e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+  return msg ? (
+    <div>
+      <p className="font-semibold text-sos-700">{msg}</p>
+      <p className="mt-1 text-sm text-ink-muted">You are signed in as {phone}.</p>
+      <Button variant="white" className="mt-3 w-full" onClick={() => signOut(auth())}>
+        Use a different number
+      </Button>
     </div>
+  ) : (
+    <p className="flex items-center gap-2 text-ink-muted">
+      <Spinner /> Verifying {phone}…
+    </p>
   );
 }

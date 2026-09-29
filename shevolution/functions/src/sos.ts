@@ -6,7 +6,6 @@ import { SMS_TEMPLATES, fillSms, fmtTime, trackingUrl } from '../../shared/src/m
 import { db, nowIso, randomToken, sha256 } from './admin';
 import { HttpError } from './http';
 import { sendSms, type SmsConfig } from './sms';
-import { authorityFor } from './authorities';
 
 export const TOKEN_TTL_MS = 24 * 3600_000;
 const OPEN = ['active', 'responding'];
@@ -58,7 +57,6 @@ export async function syncSos(uid: string, input: SosSync, ctx: Ctx) {
       contactIds: contacts.map((c) => c.id),
       contactUids: contacts.filter(canShareLive).map((c) => c.linkedUid!),
       alerts: {},
-      authority: null,
       profile,
       battery: input.battery,
       network: input.network,
@@ -116,7 +114,6 @@ export async function syncSos(uid: string, input: SosSync, ctx: Ctx) {
   }
 
   const update: Record<string, unknown> = { alerts, battery: input.battery, network: input.network };
-  if (created) update.authority = await (await authorityFor(region.region)).sendEmergencyAlert(event);
 
   if (input.status !== 'active' && OPEN.includes(event.status)) {
     update.status = input.status;
@@ -137,7 +134,6 @@ export async function syncSos(uid: string, input: SosSync, ctx: Ctx) {
   return {
     status: final.status,
     alerts: final.alerts,
-    authority: final.authority,
     responders: responders.docs.map((d) => d.get('name') as string),
   };
 }

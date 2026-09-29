@@ -93,18 +93,6 @@ export interface ContactAlert {
   live: 'shared' | 'not_verified' | 'off';
 }
 
-export type AuthorityStatus = 'call_available' | 'submitted' | 'confirmed' | 'failed' | 'not_integrated';
-
-export interface AuthoritySubmission {
-  authorityId: string;
-  name: string;
-  status: AuthorityStatus;
-  integrated: boolean;
-  referenceId: string | null;
-  detail: string;
-  at: string;
-}
-
 export interface SosEvent {
   id: string;
   ownerUid: string;
@@ -117,7 +105,6 @@ export interface SosEvent {
   contactIds: string[];
   contactUids: string[]; // verified, linked contacts allowed to read while active
   alerts: Record<string, ContactAlert>;
-  authority: AuthoritySubmission | null;
   profile: Partial<EmergencyProfile> | null;
   battery: number | null;
   network: string | null;
@@ -171,18 +158,3 @@ export interface CheckIn {
   results: Record<string, DeliveryStatus>;
 }
 
-export interface EmergencyAuthorityConfig {
-  id: string;
-  name: string;
-  region: string;
-  type: 'india112' | 'sandbox';
-  endpoint: string | null; // sandbox/test endpoints only unless an official integration exists
-  enabled: boolean;
-}
-
-/** Common interface for region-specific emergency-service adapters. */
-export interface EmergencyAuthority {
-  call(): Promise<{ route: 'dial'; number: string }>;
-  sendEmergencyAlert(event: Pick<SosEvent, 'id' | 'ownerName' | 'lastLocation' | 'startedAt'>): Promise<AuthoritySubmission>;
-  supportsLocationPayload(): boolean;
-}

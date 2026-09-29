@@ -41,6 +41,7 @@ export type NativeEvent =
   | { type: 'sos_live'; state: ChannelState; detail: string }
   | { type: 'sos_cloud'; state: ChannelState }
   | { type: 'sos_responders'; names: string[] }
+  | { type: 'sos_whatsapp'; id: string; name: string; state: ChannelState }
   | { type: 'sos_ended'; outcome: 'safe' | 'cancelled' }
   | { type: 'network'; state: 'online' | 'weak' | 'offline' }
   | { type: 'permission'; name: PermissionName; granted: boolean }

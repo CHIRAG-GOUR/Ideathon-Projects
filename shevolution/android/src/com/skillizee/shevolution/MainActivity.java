@@ -29,7 +29,7 @@ import java.util.Map;
  * origin, so the app opens and SOS works with no connection; only /api calls go to the network.
  */
 public class MainActivity extends Activity {
-    static final String HOST = "shevolution-ideathon.web.app";
+    static final String HOST = "shevolution.web.app";
     static final String START = "https://" + HOST + "/app";
     private static final int REQ_CONTACT = 7;
 

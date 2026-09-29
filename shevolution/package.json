@@ -7,8 +7,8 @@
     "build:web": "npm --prefix web run build",
     "build:functions": "npm --prefix functions run build",
     "build:apk": "npm run build:web && bash android/build.sh",
-    "firebase:setup": "npx -y firebase-tools@latest firestore:databases:create shevolution --location=asia-south1 --project ideathon-projects && npx -y firebase-tools@latest hosting:sites:create shevolution-ideathon --project ideathon-projects && echo none | npx -y firebase-tools@latest functions:secrets:set SHEVOLUTION_SMS --data-file=- --project ideathon-projects",
-    "deploy": "npm run build:web && npm run build:functions && npx -y firebase-tools@latest deploy --only hosting:shevolution-ideathon,functions:shevolution,firestore:shevolution --project ideathon-projects"
+    "firebase:setup": "npx -y firebase-tools@latest firestore:databases:create shevolution --location=asia-south1 --project ideathon-projects && npx -y firebase-tools@latest hosting:sites:create shevolution --project ideathon-projects && echo none | npx -y firebase-tools@latest functions:secrets:set SHEVOLUTION_SMS --data-file=- --project ideathon-projects",
+    "deploy": "npm run build:web && npm run build:functions && npx -y firebase-tools@latest deploy --only hosting:shevolution,functions:shevolution,firestore:shevolution --project ideathon-projects"
   },
   "dependencies": {
     "zod": "^3.25.76"

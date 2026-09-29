@@ -9,7 +9,7 @@ export interface MapPoint {
   latitude: number;
   longitude: number;
   label: string;
-  kind: 'responder' | 'police' | 'hospital' | 'pharmacy' | 'fire' | 'destination' | 'contact';
+  kind: 'responder' | 'police' | 'hospital' | 'pharmacy' | 'fire' | 'army' | 'destination' | 'contact';
 }
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
   urgent?: boolean;
 }
 
-const ICON: Record<MapPoint['kind'], string> = { responder: '🏃‍♀️', contact: '💗', police: '👮‍♀️', hospital: '🏥', pharmacy: '💊', fire: '🚒', destination: '🏠' };
+const ICON: Record<MapPoint['kind'], string> = { responder: '🏃‍♀️', contact: '💗', police: '👮‍♀️', hospital: '🏥', pharmacy: '💊', fire: '🚒', army: '🪖', destination: '🏠' };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** OpenStreetMap map. Without a connection the tiles cannot load; coordinates are always shown next to it. */

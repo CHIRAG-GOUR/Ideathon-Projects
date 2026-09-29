@@ -50,16 +50,15 @@ test('ending requires resolving; keep-active returns to the live phase', () => {
   assert.equal(s.phase, 'SAFE');
 });
 
-test('SOS SMS: compact, honest, plain ASCII, live link only when given', () => {
-  const body = fillSms(SMS_TEMPLATES.sos, { name: 'Aanya', location: loc(), time: '29 Sept, 3:30 pm IST', emergency: '112', liveUrl: 'https://shevolution-ideathon.web.app/e/TOKEN1234567890abcd' });
+test('SOS message: bright, precise, with area; live link only when given', () => {
+  const body = fillSms(SMS_TEMPLATES.sos, { name: 'Aanya', location: loc(), time: '29 Sept, 3:30 pm IST', emergency: '112', area: 'Connaught Place, New Delhi', liveUrl: 'https://shevolution.web.app/e/TOKEN1234567890abcd' });
   assert.equal(
     body,
-    'SOS ALERT\nAanya may be in danger and needs help.\nLocation: https://maps.google.com/?q=28.63150,77.21670\nLat 28.63150 Lng 77.21670 (±12 m)\nTime: 29 Sept, 3:30 pm IST\nLive location: https://shevolution-ideathon.web.app/e/TOKEN1234567890abcd\nPlease call Aanya and call 112 if needed.\n- Shevolution',
+    "🆘 SOS! I NEED HELP!\nAanya is in DANGER and needs help NOW.\n📍 Location: https://maps.google.com/?q=28.63150,77.21670\nLat 28.63150 Lng 77.21670 (±12 m)\n🏠 Area (approx.): Connaught Place, New Delhi\n🕒 Time: 29 Sept, 3:30 pm IST\nLive location: https://shevolution.web.app/e/TOKEN1234567890abcd\n📞 Call me NOW. If I don't answer, call 112 and come to this location.\n- Shevolution SOS",
   );
-  assert.ok(!/police (were|have been) notified/i.test(body));
   const noLive = fillSms(SMS_TEMPLATES.sos, { name: 'Aanya', location: loc({ lastKnown: true }), time: 't', emergency: '112' });
   assert.ok(noLive.includes('Last known location: '));
-  assert.ok(!noLive.includes('Live location'));
+  assert.ok(!noLive.includes('Live location') && !noLive.includes('Area'));
   const none = fillSms(SMS_TEMPLATES.sos, { name: 'Aanya', location: null, time: 't', emergency: '112' });
   assert.ok(none.includes('Location: not available yet'));
 });

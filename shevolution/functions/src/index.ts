@@ -13,7 +13,7 @@ import { mapProviderStatus, parseSmsConfig, validTwilioSignature } from './sms';
 
 /** "none" or the SMS provider JSON (see sms.ts). Never shipped to the app or the browser. */
 const SMS = defineSecret('SHEVOLUTION_SMS');
-const ORIGIN = process.env.SHEVOLUTION_ORIGIN ?? 'https://shevolution-ideathon.web.app';
+const ORIGIN = process.env.SHEVOLUTION_ORIGIN ?? 'https://shevolution.web.app';
 const REGION = 'asia-south1';
 
 const smsConfig = () => parseSmsConfig(SMS.value());

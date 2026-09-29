@@ -19,7 +19,7 @@ test('provider acceptance is "submitted", never "delivered"', () => {
 });
 
 test('Twilio callback signature check', () => {
-  const url = 'https://shevolution-ideathon.web.app/api/sms/status';
+  const url = 'https://shevolution.web.app/api/sms/status';
   const params = { MessageSid: 'SM1', MessageStatus: 'delivered' };
   const sig = createHmac('sha1', 'tok').update(url + 'MessageSidSM1MessageStatusdelivered').digest('base64');
   assert.ok(validTwilioSignature('tok', url, params, sig));

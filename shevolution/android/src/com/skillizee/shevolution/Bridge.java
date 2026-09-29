@@ -161,6 +161,27 @@ final class Bridge {
                 for (int i = 0; i < nums.length; i++) nums[i] = n.getString(i);
                 return new JSONObject().put("opened", Sms.compose(c, nums, x.optString("body")));
             }
+            case "sosMessage": {
+                // The SOS text for WhatsApp/email, with this contact's personal live link when they have one.
+                JSONObject sos = store.get("sos");
+                JSONObject cfg = store.config();
+                String live = null;
+                JSONArray ks = sos == null ? null : sos.optJSONArray("contacts");
+                for (int i = 0; ks != null && i < ks.length(); i++) {
+                    JSONObject k = ks.getJSONObject(i);
+                    if (k.optString("id").equals(x.optString("contactId")) && k.has("token")) live = cfg.optString("origin") + "/e/" + k.optString("token");
+                }
+                JSONObject loc = sos == null ? null : sos.optJSONObject("lastLocation");
+                return new JSONObject().put("text", Sms.fill(Sms.template(cfg, "sos", Sms.DEFAULT_SOS), cfg, loc, live, Sms.areaExtras(sos)));
+            }
+            case "whatsapp":
+                return new JSONObject().put("opened", Sms.whatsapp(c, x.optString("phone"), x.optString("text")));
+            case "email": {
+                JSONArray to = x.optJSONArray("to");
+                String[] list = new String[to == null ? 0 : to.length()];
+                for (int i = 0; i < list.length; i++) list[i] = to.getString(i);
+                return new JSONObject().put("opened", Sms.email(c, list, x.optString("subject"), x.optString("body")));
+            }
             case "pickContact":
                 a.pickContact();
                 return new JSONObject();

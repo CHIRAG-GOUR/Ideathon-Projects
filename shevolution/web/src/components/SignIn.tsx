@@ -1,86 +1,99 @@
 'use client';
-import { useState } from 'react';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useEffect, useRef, useState } from 'react';
+import { RecaptchaVerifier, signInWithPhoneNumber, updateProfile, getAdditionalUserInfo, type ConfirmationResult } from 'firebase/auth';
+import { auth, loadConfig } from '@/lib/firebase';
 import { Button, Field, inputCls } from './ui';
 
 const MESSAGES: Record<string, string> = {
-  'auth/invalid-credential': 'Email or password is incorrect.',
-  'auth/email-already-in-use': 'An account already uses this email. Sign in instead.',
-  'auth/weak-password': 'Use at least 8 characters.',
-  'auth/invalid-email': 'Enter a valid email address.',
+  'auth/invalid-phone-number': 'Enter your mobile number with country code, e.g. +91 98765 43210.',
+  'auth/invalid-verification-code': 'That code is not right. Check the SMS and try again.',
+  'auth/code-expired': 'The code expired. Send a new one.',
+  'auth/too-many-requests': 'Too many attempts. Wait a few minutes and try again.',
   'auth/network-request-failed': 'No connection. Try again when you are online.',
-  'auth/too-many-requests': 'Too many attempts. Wait a minute and try again.',
+  'auth/quota-exceeded': 'SMS limit reached for now. Try again later.',
 };
 export const authMessage = (e: unknown) => MESSAGES[(e as { code?: string }).code ?? ''] ?? (e as Error).message;
 
-export function SignIn({ intro, onDone }: { intro?: string; onDone?: () => void }) {
-  const [mode, setMode] = useState<'in' | 'up'>('in');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [msg, setMsg] = useState<{ tone: 'err' | 'ok'; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
+const normalize = (raw: string) => {
+  const t = raw.replace(/[^\d+]/g, '');
+  if (t.startsWith('+')) return t;
+  const d = t.replace(/^0+/, '');
+  return d.length === 10 ? `+91${d}` : `+${d}`;
+};
 
-  async function submit(e: React.FormEvent) {
+/** Sign up / log in with your mobile number and a one-time code. */
+export function SignIn({ intro, onDone }: { intro?: string; onDone?: () => void }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('+91 ');
+  const [code, setCode] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmationResult | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const captcha = useRef<RecaptchaVerifier>();
+  useEffect(() => () => captcha.current?.clear(), []);
+
+  async function send(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setMsg(null);
     try {
-      if (mode === 'up') {
-        if (password.length < 8) throw Object.assign(new Error(), { code: 'auth/weak-password' });
-        const c = await createUserWithEmailAndPassword(auth(), email.trim(), password);
-        await updateProfile(c.user, { displayName: name.trim() });
-        sendEmailVerification(c.user).catch(() => undefined);
-      } else {
-        await signInWithEmailAndPassword(auth(), email.trim(), password);
-      }
+      if (!(await loadConfig())) throw new Error('No connection. Sign-in needs internet — SOS on this phone still works.');
+      captcha.current ??= new RecaptchaVerifier(auth(), 'recaptcha-box', { size: 'invisible' });
+      setConfirm(await signInWithPhoneNumber(auth(), normalize(phone), captcha.current));
+    } catch (err) {
+      captcha.current?.clear();
+      captcha.current = undefined;
+      setMsg(authMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      const cred = await confirm!.confirm(code);
+      if (name.trim() && (getAdditionalUserInfo(cred)?.isNewUser || !cred.user.displayName)) await updateProfile(cred.user, { displayName: name.trim() });
       onDone?.();
     } catch (err) {
-      setMsg({ tone: 'err', text: authMessage(err) });
+      setMsg(authMessage(err));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <div className="space-y-4">
       {intro && <p className="text-ink-soft">{intro}</p>}
-      <div className="grid grid-cols-2 rounded-2xl bg-blush-100 p-1 text-sm font-bold">
-        {(['in', 'up'] as const).map((m) => (
-          <button type="button" key={m} onClick={() => setMode(m)} className={`rounded-xl py-2.5 ${mode === m ? 'bg-white text-ink shadow-soft' : 'text-ink-muted'}`}>
-            {m === 'in' ? 'Sign in' : 'Create account'}
+      {!confirm ? (
+        <form onSubmit={send} className="space-y-4">
+          <Field label="Your name" hint="Shown in your SOS messages. Needed only the first time.">
+            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" placeholder="e.g. Aanya Sharma" />
+          </Field>
+          <Field label="Mobile number">
+            <input className={inputCls} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" required />
+          </Field>
+          <Button big className="w-full" disabled={busy || phone.replace(/\D/g, '').length < 10}>
+            {busy ? 'Sending code…' : 'Send code'}
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={verify} className="space-y-4">
+          <Field label={`6-digit code sent to ${normalize(phone)}`}>
+            <input className={inputCls} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} autoFocus />
+          </Field>
+          <Button big className="w-full" disabled={busy || code.length !== 6}>
+            {busy ? 'Checking…' : 'Verify and continue'}
+          </Button>
+          <button type="button" className="w-full text-sm font-semibold text-ink-muted" onClick={() => (setConfirm(null), setCode(''))}>
+            Change number
           </button>
-        ))}
-      </div>
-      {mode === 'up' && (
-        <Field label="Your name">
-          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} autoComplete="name" />
-        </Field>
+        </form>
       )}
-      <Field label="Email">
-        <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-      </Field>
-      <Field label="Password">
-        <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === 'up' ? 8 : 1} autoComplete={mode === 'up' ? 'new-password' : 'current-password'} />
-      </Field>
-      {msg && <p className={`text-sm font-semibold ${msg.tone === 'err' ? 'text-sos-700' : 'text-safe-600'}`}>{msg.text}</p>}
-      <Button big className="w-full" disabled={busy}>
-        {mode === 'in' ? 'Sign in' : 'Create account'}
-      </Button>
-      {mode === 'in' && (
-        <button
-          type="button"
-          className="w-full text-sm font-semibold text-ink-muted"
-          onClick={async () => {
-            if (!email) return setMsg({ tone: 'err', text: 'Enter your email first.' });
-            await sendPasswordResetEmail(auth(), email.trim()).catch(() => undefined);
-            setMsg({ tone: 'ok', text: 'If an account exists, a reset link is on its way.' });
-          }}
-        >
-          Forgot password?
-        </button>
-      )}
-    </form>
+      {msg && <p className="text-sm font-semibold text-sos-700">{msg}</p>}
+      <div id="recaptcha-box" />
+    </div>
   );
 }

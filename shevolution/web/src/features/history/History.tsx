@@ -47,7 +47,6 @@ export function History({ uid }: { uid: string }) {
                   <p className="mt-1 text-sm text-ink-muted">
                     {sent}/{alerts.length} contacts texted · {e.responderCount} responded · ended {fmt(e.endedAt)}
                   </p>
-                  {e.authority && <p className="mt-1 text-xs text-ink-muted">Emergency service: {e.authority.detail}</p>}
                   {e.trailDeleted && <p className="mt-1 text-xs text-ink-faint">Location trail deleted by your retention setting.</p>}
                 </Card>
               );

@@ -38,7 +38,8 @@ export function Settings({ uid, profile, contacts, native, onNativeRefresh, demo
     createdAt: new Date().toISOString(),
   };
   const [u, setU] = useState<Omit<User, 'uid'>>(() => ({ name: base.name, phone: base.phone, email: base.email, profile: { ...base.profile }, settings: { ...DEFAULT_SETTINGS, ...base.settings }, createdAt: base.createdAt }));
-  const [phone, setPhone] = useState(base.phone ?? '');
+  const verifiedPhone = auth().currentUser?.phoneNumber ?? null;
+  const [phone, setPhone] = useState(verifiedPhone ?? base.phone ?? '');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const s = u.settings;
@@ -89,8 +90,8 @@ export function Settings({ uid, profile, contacts, native, onNativeRefresh, demo
           <Field label="Name shown in SOS alerts">
             <input className={inputCls} value={u.name} onChange={(e) => setU({ ...u, name: e.target.value })} maxLength={60} />
           </Field>
-          <Field label="Your mobile number" hint="Lets your circle tap “Call” on the live view.">
-            <input className={inputCls} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 …" />
+          <Field label="Your mobile number" hint={verifiedPhone ? 'Verified — you log in with this number.' : 'Lets your circle tap “Call” on the live view.'}>
+            <input className={inputCls} inputMode="tel" value={phone} disabled={!!verifiedPhone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 …" />
           </Field>
           <Field label="Country for emergency numbers">
             <select className={inputCls} value={s.region} onChange={(e) => set({ region: e.target.value })}>
