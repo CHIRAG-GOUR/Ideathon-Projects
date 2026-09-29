@@ -1,7 +1,7 @@
 import type { EmergencyLocation } from './types';
 import { fmtAccuracy, fmtCoord, mapsLink } from './geo';
 
-export const APP_ORIGIN = 'https://shevolution.web.app';
+export const APP_ORIGIN = 'https://shevolution-ideathon.web.app';
 export const trackingUrl = (token: string, origin = APP_ORIGIN) => `${origin}/e/${token}`;
 
 /**

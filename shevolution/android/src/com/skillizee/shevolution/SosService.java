@@ -188,7 +188,7 @@ public class SosService extends Service {
                 }
             } catch (JSONException ignored) {
             }
-            String origin = cfg.optString("origin", "https://shevolution.web.app");
+            String origin = cfg.optString("origin", "https://shevolution-ideathon.web.app");
             String tpl = Sms.template(cfg, "sos", Sms.DEFAULT_SOS);
             boolean direct = Sms.canSendDirect(SosService.this);
             List<String> composer = new ArrayList<>();

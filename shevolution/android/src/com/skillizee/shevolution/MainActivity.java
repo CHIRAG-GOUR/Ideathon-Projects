@@ -29,9 +29,14 @@ import java.util.Map;
  * origin, so the app opens and SOS works with no connection; only /api calls go to the network.
  */
 public class MainActivity extends Activity {
-    static final String HOST = "shevolution.web.app";
+    static final String HOST = "shevolution-ideathon.web.app";
+    static final String ALT_HOST = "shevolution.web.app";
     static final String START = "https://" + HOST + "/app";
     private static final int REQ_CONTACT = 7;
+
+    static boolean isHostAllowed(String host) {
+        return HOST.equalsIgnoreCase(host) || ALT_HOST.equalsIgnoreCase(host);
+    }
 
     volatile String currentHost = HOST;
     private WebView web;
@@ -67,7 +72,7 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest r) {
                 Uri u = r.getUrl();
-                if ("https".equals(u.getScheme()) && HOST.equals(u.getHost()) && !u.getPath().startsWith("/download/")) return false;
+                if ("https".equals(u.getScheme()) && isHostAllowed(u.getHost()) && !u.getPath().startsWith("/download/")) return false;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); // tel:, sms:, maps, other sites
                 } catch (ActivityNotFoundException ignored) {
@@ -121,7 +126,7 @@ public class MainActivity extends Activity {
             }
         }
         Uri data = i.getData();
-        if (Intent.ACTION_VIEW.equals(i.getAction()) && data != null && HOST.equals(data.getHost())) return data.toString();
+        if (Intent.ACTION_VIEW.equals(i.getAction()) && data != null && isHostAllowed(data.getHost())) return data.toString();
         return null;
     }
 
@@ -159,7 +164,7 @@ public class MainActivity extends Activity {
 
     private WebResourceResponse serveBundled(WebResourceRequest r) {
         Uri u = r.getUrl();
-        if (!"https".equals(u.getScheme()) || !HOST.equals(u.getHost()) || !"GET".equals(r.getMethod())) return null;
+        if (!"https".equals(u.getScheme()) || !isHostAllowed(u.getHost()) || !"GET".equals(r.getMethod())) return null;
         String path = u.getPath() == null ? "/" : u.getPath();
         if (path.startsWith("/api/") || path.startsWith("/__/") || path.startsWith("/download/")) return null;
         String asset;

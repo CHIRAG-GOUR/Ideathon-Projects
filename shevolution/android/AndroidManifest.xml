@@ -41,6 +41,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="shevolution.web.app" android:pathPrefix="/e/" />
+                <data android:scheme="https" android:host="shevolution-ideathon.web.app" android:pathPrefix="/e/" />
             </intent-filter>
         </activity>
 
