@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Camera, CheckCircle2, CloudOff, Cpu, Link2, Loader2, LogOut, MapPin, Power, Satellite, ShieldCheck, Signal, TriangleAlert, Wifi } from 'lucide-react';
+import { Bluetooth, Camera, Car, CheckCircle2, CloudOff, Cpu, Link2, Loader2, LogOut, MapPin, Power, Satellite, ShieldCheck, Signal, Sparkles, TriangleAlert, Wifi } from 'lucide-react';
 import type { Detection, Severity } from '@/types';
 import { detect, loadModel, modelBackend, onModelState, type ModelState } from '@/lib/detection/yolo';
 import { estimateSeverity } from '@/lib/detection/decode';
@@ -472,12 +472,76 @@ function Pill({ icon: Icon, label, value, tone, testId }: { icon: React.Componen
 
 function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange: (p: Pairing | null) => void }) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'register' | 'bluetooth' | 'manual'>('register');
+  
+  // Registration by details
+  const [vehNumber, setVehNumber] = useState('');
+  const [vehModel, setVehModel] = useState('');
+  const [vehCompany, setVehCompany] = useState('');
+  
+  // Manual key
   const [id, setId] = useState('');
   const [key, setKey] = useState('');
+  
+  // Bluetooth state
+  const [btStatus, setBtStatus] = useState<string | null>(null);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function pair() {
+  async function registerVehicle(customBtName?: string) {
+    if (!vehNumber.trim() && !customBtName) {
+      setError('Please enter your vehicle number (e.g. RJ 14 EA 1234)');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/vehicle/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleNumber: vehNumber.trim() || customBtName || 'VEHICLE',
+          modelName: vehModel.trim() || undefined,
+          companyName: vehCompany.trim() || undefined,
+          bluetoothName: customBtName || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.message || 'Registration failed');
+      onChange({ deviceId: data.data.id, deviceKey: data.data.key, name: data.data.name });
+      setOpen(false);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function connectBluetooth() {
+    setError(null);
+    setBtStatus('Scanning for in-car Bluetooth devices…');
+    if (typeof navigator !== 'undefined' && 'bluetooth' in navigator) {
+      try {
+        const nav = navigator as unknown as { bluetooth: { requestDevice: (o: object) => Promise<{ name?: string }> } };
+        const device = await nav.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['generic_access', 'battery_service'],
+        });
+        const deviceName = device.name || 'Car Bluetooth / OBD-II';
+        setBtStatus(`Connected to: ${deviceName}`);
+        await registerVehicle(deviceName);
+      } catch (err) {
+        setBtStatus(null);
+        setError('Bluetooth pairing cancelled or not supported on this browser.');
+      }
+    } else {
+      setBtStatus(null);
+      setError('Web Bluetooth is supported in Chrome/Edge/Android. Use Vehicle Details tab instead.');
+    }
+  }
+
+  async function pairManual() {
     setBusy(true);
     setError(null);
     try {
@@ -495,31 +559,105 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
     return (
       <div className="card flex items-center justify-between gap-3 p-4" data-testid="paired">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Vehicle</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Paired Vehicle</p>
           <p className="font-bold text-graphite">🚗 {pairing.name}</p>
-          <p className="text-xs text-graphite-muted">{pairing.deviceId} · uploads enabled</p>
+          <p className="text-xs text-road-600 font-semibold">{pairing.deviceId} · Live Cloud Sync Enabled</p>
         </div>
         <button onClick={() => onChange(null)} className="btn btn-ghost h-9 min-h-0 px-3 text-sm">
           Unpair
         </button>
       </div>
     );
+
   return (
-    <div className="card p-4" data-testid="pairing">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Vehicle not paired</p>
-      <p className="mt-1 text-sm text-graphite-soft">Detection works now; to upload events, pair this device with the ID and key an administrator gave you.</p>
+    <div className="card p-4 sm:p-5" data-testid="pairing">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Vehicle Setup</p>
+          <p className="text-sm font-semibold text-graphite">Pair your vehicle for auto-uploading road hazards</p>
+        </div>
+        <div className="h-8 w-8 rounded-full bg-paper-200 flex items-center justify-center text-graphite-soft">
+          <Car className="h-4 w-4" />
+        </div>
+      </div>
+      
       {!open ? (
-        <button onClick={() => setOpen(true)} className="btn btn-secondary mt-3 w-full" data-testid="pair-open">
-          <Link2 className="h-4 w-4" /> Pair this device
+        <button onClick={() => setOpen(true)} className="btn btn-primary mt-3 w-full" data-testid="pair-open">
+          <Car className="h-4 w-4" /> Register & Pair Vehicle
         </button>
       ) : (
-        <div className="mt-3 space-y-2">
-          <input className="field" placeholder="Device ID (veh_…)" value={id} onChange={(e) => setId(e.target.value)} data-testid="pair-id" autoCapitalize="off" />
-          <input className="field" placeholder="Device key" value={key} onChange={(e) => setKey(e.target.value)} data-testid="pair-key" autoCapitalize="off" type="password" />
-          {error && <p className="text-sm font-semibold text-pothole-600">{error}</p>}
-          <button onClick={pair} disabled={busy || !id || !key} className="btn btn-primary w-full" data-testid="pair-submit">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Pair
-          </button>
+        <div className="mt-3.5 space-y-3">
+          <div className="flex rounded-xl bg-paper-100 p-1 text-xs font-bold">
+            <button
+              onClick={() => setMode('register')}
+              className={cn('flex-1 py-1.5 rounded-lg transition', mode === 'register' ? 'bg-white shadow-sm text-graphite' : 'text-graphite-muted hover:text-graphite')}
+            >
+              🚗 Vehicle Details
+            </button>
+            <button
+              onClick={() => setMode('bluetooth')}
+              className={cn('flex-1 py-1.5 rounded-lg transition', mode === 'bluetooth' ? 'bg-white shadow-sm text-graphite' : 'text-graphite-muted hover:text-graphite')}
+            >
+              📶 Bluetooth / OBD
+            </button>
+            <button
+              onClick={() => setMode('manual')}
+              className={cn('flex-1 py-1.5 rounded-lg transition', mode === 'manual' ? 'bg-white shadow-sm text-graphite' : 'text-graphite-muted hover:text-graphite')}
+            >
+              🔑 Code
+            </button>
+          </div>
+
+          {mode === 'register' && (
+            <div className="space-y-2">
+              <input
+                className="field text-sm"
+                placeholder="Vehicle Number (e.g. RJ 14 EA 1234)"
+                value={vehNumber}
+                onChange={(e) => setVehNumber(e.target.value)}
+                autoCapitalize="characters"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="field text-sm"
+                  placeholder="Make/Model (e.g. Bolero, Swift)"
+                  value={vehModel}
+                  onChange={(e) => setVehModel(e.target.value)}
+                />
+                <input
+                  className="field text-sm"
+                  placeholder="Company / Owner Name"
+                  value={vehCompany}
+                  onChange={(e) => setVehCompany(e.target.value)}
+                />
+              </div>
+              <button onClick={() => registerVehicle()} disabled={busy || !vehNumber.trim()} className="btn btn-primary w-full">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Pair & Start Live Sync
+              </button>
+            </div>
+          )}
+
+          {mode === 'bluetooth' && (
+            <div className="space-y-2.5 text-center p-3 rounded-2xl bg-paper-50 border border-paper-200">
+              <p className="text-xs text-graphite-soft">Connect to your Car’s Bluetooth Infotainment, Android Auto, or OBD-II scanner to auto-pair.</p>
+              {btStatus && <p className="text-xs font-semibold text-gps-600">{btStatus}</p>}
+              <button onClick={connectBluetooth} disabled={busy} className="btn btn-secondary w-full">
+                <Bluetooth className="h-4 w-4 text-gps-600" /> Connect Car Bluetooth / OBD
+              </button>
+            </div>
+          )}
+
+          {mode === 'manual' && (
+            <div className="space-y-2">
+              <input className="field text-sm" placeholder="Device ID (veh_…)" value={id} onChange={(e) => setId(e.target.value)} autoCapitalize="off" />
+              <input className="field text-sm" placeholder="Device key" value={key} onChange={(e) => setKey(e.target.value)} autoCapitalize="off" type="password" />
+              <button onClick={pairManual} disabled={busy || !id || !key} className="btn btn-secondary w-full">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} Pair with Admin Key
+              </button>
+            </div>
+          )}
+
+          {error && <p className="text-xs font-semibold text-pothole-600">{error}</p>}
         </div>
       )}
     </div>
