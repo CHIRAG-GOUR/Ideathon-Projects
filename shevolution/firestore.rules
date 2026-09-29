@@ -1,0 +1,86 @@
+rules_version = '2';
+// Shevolution (named database "shevolution"). Emergency data is never public:
+// an SOS is readable by its owner, and — only while it is active — by verified linked contacts
+// or by someone holding a valid, unexpired, unrevoked live-location link for a verified contact.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me(uid) { return signedIn() && request.auth.uid == uid; }
+    function db() { return /databases/$(database)/documents; }
+    function optStr(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
+
+    function validUser(d) {
+      return d.keys().hasOnly(['name', 'phone', 'email', 'profile', 'settings', 'createdAt'])
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+        && (d.phone == null || (d.phone is string && d.phone.matches('^\\+[1-9][0-9]{6,14}$')))
+        && optStr(d, 'email', 120)
+        && d.profile is map && d.profile.shareMedical is bool
+        && optStr(d.profile, 'bloodGroup', 5) && optStr(d.profile, 'allergies', 300) && optStr(d.profile, 'medicalNotes', 500)
+        && d.settings is map && d.settings.sound is bool && d.settings.vibration is bool
+        && d.settings.retentionDays is int && d.settings.retentionDays >= 1 && d.settings.retentionDays <= 365;
+    }
+
+    function validContact(d) {
+      return d.keys().hasOnly(['name', 'phone', 'email', 'relationship', 'priority', 'channels', 'verified', 'linkedUid', 'createdAt', 'verifiedAt', 'verifiedBy'])
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+        && (d.phone == null || (d.phone is string && d.phone.matches('^\\+[1-9][0-9]{6,14}$')))
+        && (d.email == null || (d.email is string && d.email.size() <= 120))
+        && (d.phone != null || d.email != null)
+        && d.relationship in ['Mother', 'Father', 'Sibling', 'Partner', 'Friend', 'Roommate', 'Guardian', 'Other']
+        && d.priority in [1, 2, 3]
+        && d.channels.keys().hasOnly(['sms', 'live', 'call']) && d.channels.sms is bool && d.channels.live is bool && d.channels.call is bool;
+    }
+
+    match /users/{uid} {
+      allow read: if me(uid);
+      allow create, update: if me(uid) && validUser(request.resource.data);
+
+      match /contacts/{cid} {
+        allow read: if me(uid);
+        allow create: if me(uid) && validContact(request.resource.data)
+          && request.resource.data.verified == false && request.resource.data.linkedUid == null;
+        // Verification is server-only. Changing the phone/email drops it.
+        allow update: if me(uid) && validContact(request.resource.data) && (
+          (request.resource.data.verified == resource.data.verified
+            && request.resource.data.linkedUid == resource.data.linkedUid
+            && request.resource.data.phone == resource.data.phone
+            && request.resource.data.email == resource.data.email)
+          || (request.resource.data.verified == false && request.resource.data.linkedUid == null));
+        // Deletion goes through the API so live-location access is revoked at the same time.
+      }
+
+      // A trip's last position is visible to the contacts chosen for that trip, only while it runs.
+      match /safetyTrips/{id} {
+        allow read: if me(uid) || (signedIn()
+          && resource.data.status in ['active', 'overdue', 'escalated']
+          && exists(/$(db())/users/$(request.auth.uid)/circles/$(uid))
+          && get(/$(db())/users/$(request.auth.uid)/circles/$(uid)).data.contactId in resource.data.contactIds);
+      }
+      match /checkIns/{id} { allow read: if me(uid); }
+      match /checkinRequests/{id} {
+        allow read: if me(uid);
+        allow update: if me(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answered', 'answeredAt']);
+      }
+      match /circles/{ownerUid} { allow read: if me(uid); }
+    }
+
+    function openEvent(e) { return e.status in ['active', 'responding']; }
+    function tokenViewer(id) {
+      return exists(/$(db())/sosEvents/$(id)/viewers/$(request.auth.uid))
+        && get(/$(db())/sosEvents/$(id)/viewers/$(request.auth.uid)).data.expiresAt > request.time;
+    }
+    function canView(id, e) {
+      return signedIn() && (e.ownerUid == request.auth.uid
+        || (openEvent(e) && (request.auth.uid in e.contactUids || tokenViewer(id))));
+    }
+
+    match /sosEvents/{id} {
+      allow read: if canView(id, resource.data);
+      match /locations/{x} { allow read: if canView(id, get(/$(db())/sosEvents/$(id)).data); }
+      match /responders/{x} { allow read: if canView(id, get(/$(db())/sosEvents/$(id)).data); }
+      match /messages/{x} { allow read: if canView(id, get(/$(db())/sosEvents/$(id)).data); }
+    }
+
+    // devices, shareTokens, invites, smsDeliveries, emergencyAuthorities, viewers: server only.
+  }
+}

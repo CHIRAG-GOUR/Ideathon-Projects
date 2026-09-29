@@ -1,0 +1,42 @@
+{
+  "hosting": {
+    "site": "shevolution-ideathon",
+    "public": "web/out",
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "ignore": ["firebase.json", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/api/**", "function": { "functionId": "shevolutionApi", "region": "asia-south1" } },
+      { "source": "/e/**", "destination": "/e.html" },
+      { "source": "/join/**", "destination": "/join.html" }
+    ],
+    "headers": [
+      { "source": "**", "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(), microphone=()" }
+      ] },
+      { "source": "/e/**", "headers": [ { "key": "Cache-Control", "value": "no-store" }, { "key": "X-Robots-Tag", "value": "noindex" } ] },
+      { "source": "/_next/static/**", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] }
+    ]
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "shevolution",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", "src", "test", ".secret.local", "*.log"]
+    }
+  ],
+  "firestore": [
+    { "database": "shevolution", "rules": "firestore.rules", "indexes": "firestore.indexes.json" }
+  ],
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8080 },
+    "functions": { "port": 5001 },
+    "hosting": { "port": 5055 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

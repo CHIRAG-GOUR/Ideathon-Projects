@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { background: #FFFBFB; color: #2A1519; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Plus Jakarta Sans Variable', system-ui, sans-serif; text-rendering: optimizeLegibility; }
+
+@layer components {
+  .page { @apply mx-auto w-full max-w-6xl px-5 sm:px-8; }
+  .h-eyebrow { @apply text-xs font-extrabold uppercase tracking-[0.18em] text-sos-600; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+/* Map markers */
+.leaflet-container { font-family: inherit; background: #FFF5F6; }
+.shev-me { position: relative; width: 28px; height: 28px; border-radius: 9999px; background: rgba(240,36,82,.18); display: grid; place-items: center; }
+.shev-me > span { width: 16px; height: 16px; border-radius: 9999px; background: #F02452; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(213,16,63,.45); }
+.shev-urgent::after { content: ''; position: absolute; inset: -10px; border-radius: 9999px; border: 3px solid #F02452; animation: shev-ping 1.6s ease-out infinite; }
+.shev-heading { position: absolute; inset: -14px; background: no-repeat center top / 14px 14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0l4 9-4-2-4 2z' fill='%23D5103F'/%3E%3C/svg%3E"); }
+.shev-pin { width: 34px; height: 34px; border-radius: 12px; background: #fff; display: grid; place-items: center; font-size: 18px; box-shadow: 0 4px 14px rgba(42,21,25,.18); border: 2px solid #FFE0E6; }
+.shev-responder, .shev-contact { border-color: #13A36E; }
+@keyframes shev-ping { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
