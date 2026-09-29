@@ -20,7 +20,16 @@ export function CameraCapture({ onCapture, onClose, onError }: { onCapture: (c: 
       stream.current?.getTracks().forEach((t) => t.stop());
       try {
         if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('insecure'), { name: 'NotSupportedError' });
-        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: isPortrait ? 1080 : 1920 },
+            height: { ideal: isPortrait ? 1920 : 1080 },
+            aspectRatio: isPortrait ? { ideal: 9 / 16 } : { ideal: 16 / 9 },
+          },
+          audio: false,
+        });
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
         stream.current = s;
         video.current!.srcObject = s;
@@ -54,17 +63,17 @@ export function CameraCapture({ onCapture, onClose, onError }: { onCapture: (c: 
   }
 
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="relative overflow-hidden rounded-4xl bg-paper-200 ring-1 ring-paper-300" data-testid="camera">
-      <div className="relative aspect-[3/4] w-full sm:aspect-video">
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="relative overflow-hidden rounded-3xl sm:rounded-4xl bg-black ring-1 ring-paper-300 shadow-2xl" data-testid="camera">
+      <div className="relative h-[68vh] sm:h-[520px] aspect-[9/16] sm:aspect-[4/3] w-full flex items-center justify-center bg-black overflow-hidden">
         <video ref={video} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
         {ready && (
-          <div className="pointer-events-none absolute inset-[12%] rounded-3xl border-2 border-dashed border-white/80">
-            <span className="absolute inset-x-4 h-0.5 animate-sweep rounded-full bg-amber-300 shadow-[0_0_12px_2px_rgba(246,176,42,0.6)]" />
+          <div className="pointer-events-none absolute inset-[8%] rounded-3xl border-2 border-dashed border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.3)]">
+            <span className="absolute inset-x-4 h-0.5 animate-sweep rounded-full bg-amber-300 shadow-[0_0_14px_3px_rgba(246,176,42,0.8)]" />
           </div>
         )}
-        {!ready && <p className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-graphite-soft">Opening camera…</p>}
+        {!ready && <p className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-white/70">Opening camera…</p>}
         {flash > 0 && <motion.div key={flash} className="absolute inset-0 bg-white" initial={{ opacity: 0.9 }} animate={{ opacity: 0 }} transition={{ duration: 0.3 }} />}
-        <p className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-graphite shadow-soft">Point at the pothole · keep the road surface visible</p>
+        <p className="absolute left-4 top-4 rounded-full bg-black/60 backdrop-blur-md px-3.5 py-1.5 text-xs font-bold text-white shadow-soft">📸 Point at road pothole · keep surface in view</p>
       </div>
       <div className="grid grid-cols-3 items-center bg-white px-6 py-4">
         <button onClick={onClose} className="btn btn-ghost mx-auto h-12 w-12 min-h-0 p-0" aria-label="Close camera">

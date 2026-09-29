@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, ArrowRight, Camera, Check, CheckCircle2, ExternalLink, ImagePlus, Loader2, LocateFixed, MapPin, RefreshCw, RotateCcw, Send, ShieldQuestion, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Camera, Check, CheckCircle2, ExternalLink, ImagePlus, Loader2, LocateFixed, Mail, MapPin, RefreshCw, RotateCcw, Send, ShieldQuestion, X } from 'lucide-react';
 import type { Address, DetectionSummary, GeoFix, RoadHazard, Severity } from '@/types';
 import { CameraCapture } from './CameraCapture';
 import { detect } from '@/lib/detection/yolo';
@@ -604,7 +604,16 @@ function Outcome({ report: r, onRetry, retrying, onAnother, error }: { report: R
           {error && <p className="text-sm font-semibold text-pothole-600">{error}</p>}
         </div>
       )}
-      {r.reportStatus === 'pending_manual_submission' && r.authorityPortal && (
+      {r.authorityPortal?.startsWith('mailto:') && (
+        <div className="mt-4 p-4 rounded-2xl bg-paper-100 border border-paper-200 text-left">
+          <p className="text-xs font-bold uppercase tracking-wider text-graphite-muted">Send from Personal Email</p>
+          <p className="mt-0.5 text-xs text-graphite-soft">1-tap to open your Gmail / Mail app with official grievance details filled in so the authority replies directly to you.</p>
+          <a href={r.authorityPortal} className="btn btn-primary mt-2.5 w-full">
+            <Mail className="h-4 w-4" /> Send from My Email (Gmail / Mail App)
+          </a>
+        </div>
+      )}
+      {r.reportStatus === 'pending_manual_submission' && r.authorityPortal && !r.authorityPortal.startsWith('mailto:') && (
         <div className="mt-4 space-y-2">
           <a href={r.authorityPortal} target="_blank" rel="noopener noreferrer" className="btn btn-primary w-full sm:w-auto" data-testid="official-portal">
             Continue to Official Reporting Portal <ExternalLink className="h-4 w-4" />

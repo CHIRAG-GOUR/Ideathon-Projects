@@ -294,7 +294,7 @@ export function LiveDrive() {
         const ctx = c.getContext('2d')!;
         ctx.clearRect(0, 0, c.width, c.height);
         if (runningRef.current && v.videoWidth) {
-          const s = Math.min(c.width / v.videoWidth, c.height / v.videoHeight);
+          const s = Math.max(c.width / v.videoWidth, c.height / v.videoHeight);
           const ox = (c.width - v.videoWidth * s) / 2, oy = (c.height - v.videoHeight * s) / 2;
           for (const d of detsRef.current) {
             const sev = estimateSeverity(d.box, v.videoWidth, v.videoHeight, d.confidence);
@@ -358,9 +358,9 @@ export function LiveDrive() {
 
       <div className="mx-auto grid max-w-6xl gap-4 p-4 lg:grid-cols-[1fr_340px]">
         {/* Camera */}
-        <div className="relative overflow-hidden rounded-3xl bg-paper-200 ring-1 ring-paper-300">
-          <div className="relative aspect-video w-full">
-            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-contain" data-testid="live-video" />
+        <div className="relative overflow-hidden rounded-3xl bg-black ring-1 ring-paper-300 shadow-xl">
+          <div className="relative aspect-[9/16] sm:aspect-video w-full min-h-[62vh] h-[66vh] sm:min-h-0 sm:h-[520px]">
+            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" data-testid="live-video" />
             <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" data-testid="live-overlay" data-count={liveCount} />
             {!running && (
               <div className="absolute inset-0 flex items-center justify-center p-6">

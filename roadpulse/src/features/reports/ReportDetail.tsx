@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Check, ExternalLink, Loader2, RefreshCw, X } from 'lucide-react';
+import { Check, ExternalLink, Loader2, Mail, RefreshCw, X } from 'lucide-react';
 import type { RoadHazard, TimelineEvent } from '@/types';
 import { api, currentUser, firebaseConfigured } from '@/lib/firebase';
 import { watchHazard } from '@/lib/hazards';
@@ -112,7 +112,17 @@ export function ReportDetail({ id, admin }: { id: string; admin?: boolean }) {
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Retry sending
         </button>
       )}
-      {r.reportStatus === 'pending_manual_submission' && r.authorityPortal && (
+      {r.authorityPortal?.startsWith('mailto:') && (
+        <div className="card p-5 bg-paper-50 border border-paper-200">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Official Grievance Action</p>
+          <p className="mt-1 text-sm font-semibold text-graphite">Send directly from your personal mailbox to {r.authorityName || 'Road Authority'}</p>
+          <p className="mt-1 text-xs text-graphite-soft">Opens your native email app (Gmail / Outlook / Apple Mail) with pre-filled GPS, map pin, severity, and photo reference so you get direct replies from the engineers.</p>
+          <a href={r.authorityPortal} className="btn btn-primary mt-3 w-full sm:w-auto">
+            <Mail className="h-4 w-4" /> Send from My Email (Gmail / Mail Client)
+          </a>
+        </div>
+      )}
+      {r.reportStatus === 'pending_manual_submission' && r.authorityPortal && !r.authorityPortal.startsWith('mailto:') && (
         <a href={r.authorityPortal} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
           Continue to Official Reporting Portal <ExternalLink className="h-4 w-4" />
         </a>
