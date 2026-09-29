@@ -187,10 +187,19 @@ export function LiveDrive() {
     setCamError(null);
     setAiError(null);
     tracker.current = new IouTracker();
-    // 1. Camera (rear, HD).
+    // 1. Camera (rear, HD, vertical on mobile).
     setCam('connecting');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: isPortrait ? 1080 : 1920 },
+          height: { ideal: isPortrait ? 1920 : 1080 },
+          aspectRatio: isPortrait ? { ideal: 9 / 16 } : { ideal: 16 / 9 },
+        },
+        audio: false,
+      });
       streamRef.current = stream;
       const v = videoRef.current!;
       v.srcObject = stream;
@@ -279,7 +288,7 @@ export function LiveDrive() {
     }
   }
 
-  // Draw boxes every display frame from the latest detections (object-contain mapping).
+  // Draw boxes every display frame from the latest detections (object-cover mapping).
   useEffect(() => {
     let raf = 0;
     const draw = () => {
@@ -356,36 +365,36 @@ export function LiveDrive() {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-6xl gap-4 p-4 lg:grid-cols-[1fr_340px]">
+      <div className="mx-auto grid max-w-6xl gap-4 p-3 sm:p-4 lg:grid-cols-[1fr_360px]">
         {/* Camera */}
-        <div className="relative overflow-hidden rounded-3xl bg-black ring-1 ring-paper-300 shadow-xl">
-          <div className="relative aspect-[9/16] sm:aspect-video w-full min-h-[62vh] h-[66vh] sm:min-h-0 sm:h-[520px]">
+        <div className="relative overflow-hidden rounded-3xl sm:rounded-4xl bg-black ring-1 ring-paper-300 shadow-2xl">
+          <div className="relative w-full h-[60vh] sm:h-[520px] bg-black">
             <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" data-testid="live-video" />
             <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" data-testid="live-overlay" data-count={liveCount} />
             {!running && (
-              <div className="absolute inset-0 flex items-center justify-center p-6">
-                <div className="max-w-md text-center">
-                  <p className="display text-2xl">Let RoadPulse watch the road</p>
-                  <p className="mt-2 text-sm text-graphite-soft">
-                    Mount the phone facing the road. Detection runs on this device in real time — video never leaves it. Only confirmed pothole events (location, time, confidence and a small cropped photo) are uploaded.
+              <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+                <div className="max-w-md text-center text-white">
+                  <p className="display text-2xl sm:text-3xl text-white">Let RoadPulse watch the road</p>
+                  <p className="mt-2 text-sm text-white/80 leading-relaxed">
+                    Mount the phone facing the road. Detection runs on this device in real time — video never leaves it. Confirmed pothole events with GPS are synced automatically.
                   </p>
                   {(camError || aiError) && (
-                    <p className="mt-3 rounded-2xl bg-pothole-50 p-3 text-sm font-semibold text-pothole-700" role="alert">
+                    <p className="mt-3 rounded-2xl bg-pothole-500/20 border border-pothole-500/40 p-3 text-sm font-semibold text-pothole-300" role="alert">
                       {camError ?? aiError}
                     </p>
                   )}
-                  <button onClick={start} className="btn btn-primary btn-lg mt-5" data-testid="live-start">
+                  <button onClick={start} className="btn btn-primary btn-lg mt-5 shadow-lg w-full sm:w-auto" data-testid="live-start">
                     <Power className="h-5 w-5" /> Start Live Drive
                   </button>
-                  <p className="mt-2 text-xs text-graphite-muted">We’ll ask for the camera and your location.</p>
+                  <p className="mt-2 text-xs text-white/60">Uses rear camera and high-precision GPS</p>
                 </div>
               </div>
             )}
           </div>
           {running && (
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-paper-300 bg-white px-4 py-2.5 text-xs font-semibold text-graphite-soft">
-              <span data-testid="live-perf">
-                On-device {modelBackend()?.toUpperCase()} · {inferMs} ms per frame · {liveCount} in view
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-paper-300 bg-white px-4 py-3 text-xs font-semibold text-graphite-soft">
+              <span data-testid="live-perf" className="font-bold text-graphite">
+                On-device {modelBackend()?.toUpperCase()} · {inferMs} ms · {liveCount} hazard(s) in view
               </span>
               <span className="flex items-center gap-3">
                 {(['low', 'medium', 'high'] as const).map((s) => (
@@ -393,9 +402,8 @@ export function LiveDrive() {
                     <i className="h-2.5 w-2.5 rounded-sm" style={{ background: BOX_COLOR[s] }} /> {SEVERITY[s].label}
                   </span>
                 ))}
-                <span className="text-graphite-muted">AI-estimated from apparent size</span>
               </span>
-              <button onClick={stop} className="btn btn-secondary h-9 min-h-0 px-3 text-sm" data-testid="live-stop">
+              <button onClick={stop} className="btn btn-secondary h-9 min-h-0 px-4 text-sm font-bold" data-testid="live-stop">
                 Stop
               </button>
             </div>
@@ -403,12 +411,12 @@ export function LiveDrive() {
         </div>
 
         {/* Side: pairing + events */}
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <PairingCard pairing={pairing} onChange={(p) => { pairingRef.current = p; setPairingState(p); setPairing(p); if (p) flush(); }} />
-          <div className="card p-4">
+          <div className="card p-4 sm:p-5">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Detections this drive</p>
             {events.length === 0 && <p className="mt-2 text-sm text-graphite-muted">Confirmed potholes appear here with GPS and time.</p>}
-            <div className="mt-2 space-y-2" data-testid="live-events">
+            <div className="mt-2.5 space-y-2.5" data-testid="live-events">
               <AnimatePresence initial={false}>
                 {events.map((e) => (
                   <motion.div key={e.localId} layout initial={{ opacity: 0, y: -12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="rounded-2xl bg-paper-50 p-3 ring-1 ring-paper-200" data-testid="live-event" data-state={e.state}>
@@ -436,7 +444,7 @@ export function LiveDrive() {
           </div>
           <p className="px-1 text-[11px] leading-relaxed text-graphite-muted">
             <ShieldCheck className="mr-1 inline h-3.5 w-3.5" />
-            Sent per confirmed pothole: location, time, device ID, confidence, AI-estimated severity and a cropped photo. Continuous video is never uploaded.
+            Sent per confirmed pothole: location, time, vehicle name, confidence, AI-estimated severity and a cropped photo. Continuous video is never uploaded.
           </p>
         </div>
       </div>
@@ -472,7 +480,7 @@ function Pill({ icon: Icon, label, value, tone, testId }: { icon: React.Componen
 
 function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange: (p: Pairing | null) => void }) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<'register' | 'bluetooth' | 'manual'>('register');
+  const [mode, setMode] = useState<'bluetooth' | 'details' | 'manual'>('bluetooth');
   
   // Registration by details
   const [vehNumber, setVehNumber] = useState('');
@@ -488,6 +496,30 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function quickGuestConnect() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/vehicle/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleNumber: `COMMUTER-${Math.floor(1000 + Math.random() * 9000)}`,
+          modelName: 'Mobile Dashcam',
+          companyName: 'Jaipur Citizen Fleet',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.message || 'Quick connect failed');
+      onChange({ deviceId: data.data.id, deviceKey: data.data.key, name: data.data.name });
+      setOpen(false);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function registerVehicle(customBtName?: string) {
     if (!vehNumber.trim() && !customBtName) {
@@ -537,7 +569,8 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
       }
     } else {
       setBtStatus(null);
-      setError('Web Bluetooth is supported in Chrome/Edge/Android. Use Vehicle Details tab instead.');
+      // Fallback: auto-register with vehicle details or quick connect
+      setError('Web Bluetooth requires Chrome/Android. Use "Vehicle Number" tab or Quick Connect below.');
     }
   }
 
@@ -557,14 +590,14 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
 
   if (pairing)
     return (
-      <div className="card flex items-center justify-between gap-3 p-4" data-testid="paired">
+      <div className="card flex items-center justify-between gap-3 p-4 sm:p-5" data-testid="paired">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Paired Vehicle</p>
-          <p className="font-bold text-graphite">🚗 {pairing.name}</p>
-          <p className="text-xs text-road-600 font-semibold">{pairing.deviceId} · Live Cloud Sync Enabled</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Active Vehicle</p>
+          <p className="font-bold text-graphite text-base">🚗 {pairing.name}</p>
+          <p className="text-xs text-road-600 font-semibold mt-0.5">🟢 Live Cloud Sync Active</p>
         </div>
         <button onClick={() => onChange(null)} className="btn btn-ghost h-9 min-h-0 px-3 text-sm">
-          Unpair
+          Disconnect
         </button>
       </div>
     );
@@ -573,32 +606,42 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
     <div className="card p-4 sm:p-5" data-testid="pairing">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Vehicle Setup</p>
-          <p className="text-sm font-semibold text-graphite">Pair your vehicle for auto-uploading road hazards</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-graphite-muted">Vehicle Link</p>
+          <p className="text-sm font-semibold text-graphite">Connect your car for live cloud syncing</p>
         </div>
-        <div className="h-8 w-8 rounded-full bg-paper-200 flex items-center justify-center text-graphite-soft">
-          <Car className="h-4 w-4" />
+        <div className="h-9 w-9 rounded-2xl bg-road-50 flex items-center justify-center text-road-600">
+          <Car className="h-5 w-5" />
         </div>
       </div>
       
       {!open ? (
-        <button onClick={() => setOpen(true)} className="btn btn-primary mt-3 w-full" data-testid="pair-open">
-          <Car className="h-4 w-4" /> Register & Pair Vehicle
-        </button>
+        <div className="mt-3.5 space-y-2">
+          <button onClick={connectBluetooth} disabled={busy} className="btn btn-primary w-full" data-testid="pair-open">
+            <Bluetooth className="h-4 w-4" /> 1-Tap Connect Car Bluetooth / OBD
+          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => { setMode('details'); setOpen(true); }} className="btn btn-secondary text-xs py-2">
+              <Car className="h-3.5 w-3.5" /> Vehicle Number
+            </button>
+            <button onClick={quickGuestConnect} disabled={busy} className="btn btn-secondary text-xs py-2">
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-amber-500" />} Quick Connect
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="mt-3.5 space-y-3">
           <div className="flex rounded-xl bg-paper-100 p-1 text-xs font-bold">
             <button
-              onClick={() => setMode('register')}
-              className={cn('flex-1 py-1.5 rounded-lg transition', mode === 'register' ? 'bg-white shadow-sm text-graphite' : 'text-graphite-muted hover:text-graphite')}
-            >
-              🚗 Vehicle Details
-            </button>
-            <button
               onClick={() => setMode('bluetooth')}
               className={cn('flex-1 py-1.5 rounded-lg transition', mode === 'bluetooth' ? 'bg-white shadow-sm text-graphite' : 'text-graphite-muted hover:text-graphite')}
             >
-              📶 Bluetooth / OBD
+              📶 Bluetooth
+            </button>
+            <button
+              onClick={() => setMode('details')}
+              className={cn('flex-1 py-1.5 rounded-lg transition', mode === 'details' ? 'bg-white shadow-sm text-graphite' : 'text-graphite-muted hover:text-graphite')}
+            >
+              🚗 Vehicle No.
             </button>
             <button
               onClick={() => setMode('manual')}
@@ -608,7 +651,17 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
             </button>
           </div>
 
-          {mode === 'register' && (
+          {mode === 'bluetooth' && (
+            <div className="space-y-2.5 text-center p-3.5 rounded-2xl bg-paper-50 border border-paper-200">
+              <p className="text-xs text-graphite-soft">Pair with in-car Bluetooth, Android Auto, or OBD-II scanner to sync hazards continuously.</p>
+              {btStatus && <p className="text-xs font-semibold text-gps-600">{btStatus}</p>}
+              <button onClick={connectBluetooth} disabled={busy} className="btn btn-primary w-full">
+                <Bluetooth className="h-4 w-4" /> Scan & Connect Car Bluetooth
+              </button>
+            </div>
+          )}
+
+          {mode === 'details' && (
             <div className="space-y-2">
               <input
                 className="field text-sm"
@@ -620,29 +673,19 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
               <div className="grid grid-cols-2 gap-2">
                 <input
                   className="field text-sm"
-                  placeholder="Make/Model (e.g. Bolero, Swift)"
+                  placeholder="Model (e.g. Bolero, Swift)"
                   value={vehModel}
                   onChange={(e) => setVehModel(e.target.value)}
                 />
                 <input
                   className="field text-sm"
-                  placeholder="Company / Owner Name"
+                  placeholder="Owner / Company"
                   value={vehCompany}
                   onChange={(e) => setVehCompany(e.target.value)}
                 />
               </div>
               <button onClick={() => registerVehicle()} disabled={busy || !vehNumber.trim()} className="btn btn-primary w-full">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Pair & Start Live Sync
-              </button>
-            </div>
-          )}
-
-          {mode === 'bluetooth' && (
-            <div className="space-y-2.5 text-center p-3 rounded-2xl bg-paper-50 border border-paper-200">
-              <p className="text-xs text-graphite-soft">Connect to your Car’s Bluetooth Infotainment, Android Auto, or OBD-II scanner to auto-pair.</p>
-              {btStatus && <p className="text-xs font-semibold text-gps-600">{btStatus}</p>}
-              <button onClick={connectBluetooth} disabled={busy} className="btn btn-secondary w-full">
-                <Bluetooth className="h-4 w-4 text-gps-600" /> Connect Car Bluetooth / OBD
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Connect Vehicle
               </button>
             </div>
           )}
@@ -652,12 +695,15 @@ function PairingCard({ pairing, onChange }: { pairing: Pairing | null; onChange:
               <input className="field text-sm" placeholder="Device ID (veh_…)" value={id} onChange={(e) => setId(e.target.value)} autoCapitalize="off" />
               <input className="field text-sm" placeholder="Device key" value={key} onChange={(e) => setKey(e.target.value)} autoCapitalize="off" type="password" />
               <button onClick={pairManual} disabled={busy || !id || !key} className="btn btn-secondary w-full">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} Pair with Admin Key
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} Connect with Admin Key
               </button>
             </div>
           )}
 
           {error && <p className="text-xs font-semibold text-pothole-600">{error}</p>}
+          <button onClick={() => setOpen(false)} className="btn btn-ghost w-full text-xs py-1.5 text-graphite-muted">
+            Cancel
+          </button>
         </div>
       )}
     </div>

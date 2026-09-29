@@ -56,7 +56,9 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false); // live camera preview plays inline
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(true);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        web.clearCache(true);
 
         web.setWebViewClient(new WebViewClient() {
             @Override

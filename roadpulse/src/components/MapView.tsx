@@ -55,9 +55,11 @@ export default function MapView(props: MapViewProps) {
       (window as unknown as { L: typeof Leaflet }).L = lf;
       await import('leaflet.markercluster');
       if (cancelled || !el.current) return;
-      L.current = lf;
       const m = lf.map(el.current, { zoomControl: true, attributionControl: false }).setView(props.center ?? [22.5, 79], props.zoom ?? (props.center ? 16 : 5));
-      lf.tileLayer(TILE, { maxZoom: 19 }).addTo(m);
+      lf.tileLayer(TILE, { maxZoom: 19, attribution: '' }).addTo(m);
+      if (m.attributionControl) {
+        m.removeControl(m.attributionControl);
+      }
       m.on('click', (e: Leaflet.LeafletMouseEvent) => {
         if (propsRef.current.placeOnClick) propsRef.current.onPinMove?.(e.latlng.lat, e.latlng.lng);
       });

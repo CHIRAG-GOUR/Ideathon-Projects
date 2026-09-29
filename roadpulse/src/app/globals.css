@@ -38,7 +38,20 @@ h1, h2, h3, p { overflow-wrap: break-word; }
 
 /* Leaflet — calm, light map chrome */
 .leaflet-container { font-family: Inter, sans-serif; background: #eef0ec; }
-.leaflet-control-attribution { display: none !important; }
+.leaflet-control-attribution,
+.leaflet-bottom.leaflet-right,
+.leaflet-control-attribution a,
+.leaflet-control-attribution svg,
+.leaflet-control-attribution * {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
 .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 12px 32px -12px rgba(43,47,51,.35); }
 .leaflet-popup-content { margin: 12px 14px; }
 .rp-pin { animation: rp-drop .55s cubic-bezier(.2,1.4,.4,1) both; transform-origin: bottom center; }
