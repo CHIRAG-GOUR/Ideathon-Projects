@@ -1,0 +1,14 @@
+rules_version = '2';
+// RoadPulse's own bucket. Citizens upload only their own report photos; nobody reads directly —
+// images are served by the server to the report's owner and to admins.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /citizen/{uid}/{file} {
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow read, update, delete: if false;
+    }
+    match /{all=**} { allow read, write: if false; }
+  }
+}

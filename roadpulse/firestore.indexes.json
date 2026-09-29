@@ -1,0 +1,8 @@
+{
+  "indexes": [
+    { "collectionGroup": "roadHazards", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "ownerUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "roadHazards", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "source", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "roadHazards", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "reportStatus", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] }
+  ],
+  "fieldOverrides": []
+}

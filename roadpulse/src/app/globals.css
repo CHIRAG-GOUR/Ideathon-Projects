@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light; /* RoadPulse is light-only */
+}
+html,
+body {
+  background: #faf8f4;
+  color: #2b2f33;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+h1, h2, h3, p { overflow-wrap: break-word; }
+::selection { background: #d6eedf; }
+:focus-visible { outline: 3px solid #4c8df6; outline-offset: 2px; border-radius: 10px; }
+
+@layer components {
+  .page { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
+  .display { @apply font-display font-bold tracking-[-0.02em] text-graphite; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.16em] text-road-600; }
+  .num { font-variant-numeric: tabular-nums; }
+  .btn { @apply inline-flex min-h-[46px] max-w-full items-center justify-center gap-2 rounded-2xl px-5 text-center text-[15px] font-semibold transition active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50; }
+  .btn-primary { @apply bg-road-500 text-white shadow-[0_10px_24px_-12px_rgba(35,128,76,0.8)] hover:bg-road-600; }
+  .btn-danger { @apply bg-pothole-500 text-white shadow-[0_10px_24px_-12px_rgba(199,52,56,0.7)] hover:bg-pothole-600; }
+  .btn-secondary { @apply bg-white text-graphite ring-1 ring-inset ring-paper-300 hover:bg-paper-100; }
+  .btn-ghost { @apply text-graphite-soft hover:bg-paper-200; }
+  .btn-lg { @apply min-h-[56px] px-7 text-base; }
+  .card { @apply rounded-3xl bg-white shadow-soft ring-1 ring-inset ring-paper-200; }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold; }
+  .field { @apply w-full rounded-2xl bg-paper-50 px-4 py-3 text-base text-graphite outline-none ring-1 ring-inset ring-paper-300 placeholder:text-graphite-faint focus:ring-2 focus:ring-gps-500; }
+  .label { @apply mb-1.5 block text-sm font-semibold text-graphite-soft; }
+}
+
+/* Leaflet — calm, light map chrome */
+.leaflet-container { font-family: Inter, sans-serif; background: #eef0ec; }
+.leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 12px 32px -12px rgba(43,47,51,.35); }
+.leaflet-popup-content { margin: 12px 14px; }
+.rp-pin { animation: rp-drop .55s cubic-bezier(.2,1.4,.4,1) both; transform-origin: bottom center; }
+@keyframes rp-drop { from { transform: translateY(-40px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background: rgba(229,72,77,.18) !important; }
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background: #e5484d !important; color: #fff !important; font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

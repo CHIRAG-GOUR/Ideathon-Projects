@@ -1,0 +1,37 @@
+rules_version = '2';
+// RoadPulse — its own named database ("roadpulse"); nothing here touches other apps' data.
+// All report / vehicle writes go through the server (Admin SDK). Clients only read.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/config/admins)
+        && request.auth.token.email in get(/databases/$(database)/documents/config/admins).data.emails;
+    }
+
+    // Public map: pins, severity and status (no photos — images are private and served only to owner/admins).
+    match /roadHazards/{id} { allow read: if true; allow write: if false; }
+    match /hazardGroups/{id} { allow read: if true; allow write: if false; }
+
+    // Admin-only data.
+    match /authoritySubmissions/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /vehicles/{id} { allow read: if isAdmin(); allow write: if false; }
+
+    // Authority directory: readable (so people can see where reports go), editable by admins only.
+    match /authorities/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
+        && request.resource.data.submissionMethod in ['api', 'email', 'portal', 'manual']
+        && request.resource.data.enabled is bool;
+      allow delete: if isAdmin();
+    }
+
+    // The admin list is edited by the project owner in the Firebase console only.
+    match /config/{doc} { allow read: if isAdmin(); allow write: if false; }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
