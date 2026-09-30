@@ -1,0 +1,20 @@
+{
+  "name": "shevolution",
+  "private": true,
+  "description": "Shevolution: women's safety + SOS platform (Android safety layer, web app, Firebase backend)",
+  "scripts": {
+    "test": "node --import tsx --test shared/test/*.test.ts functions/test/*.test.ts",
+    "build:web": "npm --prefix web run build",
+    "build:functions": "npm --prefix functions run build",
+    "build:apk": "npm run build:web && bash android/build.sh",
+    "build:apk:win": "npm run build:web && powershell -ExecutionPolicy Bypass -File android/build.ps1",
+    "firebase:setup": "firebase firestore:databases:create shevolution --location=asia-south1 --project ideathon-projects && firebase hosting:sites:create shevolution-ideathon --project ideathon-projects",
+    "deploy": "npm run build:web && npm run build:functions && firebase deploy --only hosting:shevolution-ideathon,functions:shevolution,firestore:shevolution --project ideathon-projects"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
