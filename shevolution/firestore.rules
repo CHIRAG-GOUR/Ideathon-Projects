@@ -81,6 +81,11 @@ service cloud.firestore {
       match /messages/{x} { allow read: if canView(id, get(/$(db())/sosEvents/$(id)).data); }
     }
 
+    // Shared Safe Rides: readable by anyone with the link / tripId
+    match /sharedTrips/{id} {
+      allow read: if true;
+    }
+
     // devices, shareTokens, invites, smsDeliveries, emergencyAuthorities, viewers: server only.
   }
 }

@@ -12,17 +12,38 @@ type Join = { sosId: string; status: string; endedAt: string | null; ownerName: 
 export default function EmergencyLink() {
   const [state, setState] = useState<{ join?: Join; error?: string }>({});
   useEffect(() => {
-    const token = location.pathname.split('/')[2] || new URLSearchParams(location.search).get('t') || '';
+    const search = new URLSearchParams(location.search);
+    const token = location.pathname.split('/')[2] || search.get('t') || '';
+    const lat = search.get('lat') || search.get('pLat');
+    const lng = search.get('lng') || search.get('pLng');
+    
     (async () => {
-      if (!(await loadConfig())) return setState({ error: 'No connection. Live location needs internet — try again in a moment.' });
-      if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return setState({ error: 'This link is incomplete. Open the full link from the SOS message.' });
       try {
-        await auth().authStateReady();
-        if (!auth().currentUser) await signInAnonymously(auth());
-        setState({ join: await api<Join>('/track/join', { token }) });
+        if (await loadConfig()) {
+          if (/^[A-Za-z0-9_-]{12,64}$/.test(token)) {
+            await auth().authStateReady();
+            if (!auth().currentUser) await signInAnonymously(auth());
+            const j = await api<Join>('/track/join', { token });
+            if (j && j.sosId) {
+              setState({ join: j });
+              return;
+            }
+          }
+        }
       } catch (e) {
-        setState({ error: (e as Error).message });
+        /* fallback below */
       }
+
+      // If token join is not available, redirect to live map view with coordinates or trip id
+      if (lat && lng) {
+        window.location.replace(`/trip?p=${lat},${lng}&id=${token || 'sos'}&n=${search.get('n') || 'Emergency Contact'}`);
+        return;
+      }
+      if (token) {
+        window.location.replace(`/trip?id=${token}`);
+        return;
+      }
+      setState({ error: 'Please open the full link from the emergency message.' });
     })();
   }, []);
 

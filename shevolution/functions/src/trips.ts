@@ -12,12 +12,16 @@ const tripRef = (uid: string, id: string) => db().doc(`users/${uid}/safetyTrips/
 
 export async function startTrip(uid: string, t: z.infer<typeof tripInputSchema>) {
   const now = new Date();
-  const trip: SafetyTrip & { ownerUid: string } = {
+  const user = (await db().doc(`users/${uid}`).get()).data() ?? {};
+  const trip: SafetyTrip & { ownerUid: string; ownerName?: string } = {
     id: t.id,
     ownerUid: uid,
+    ownerName: user.name || 'Shevolution User',
     kind: t.kind,
     label: t.label,
+    pickup: t.pickup ?? null,
     destination: t.destination,
+    route: t.route ?? null,
     startedAt: now.toISOString(),
     dueAt: new Date(now.getTime() + t.minutes * 60_000).toISOString(),
     status: 'active',
@@ -28,6 +32,7 @@ export async function startTrip(uid: string, t: z.infer<typeof tripInputSchema>)
     endedAt: null,
   };
   await tripRef(uid, t.id).set(trip);
+  await db().doc(`sharedTrips/${t.id}`).set({ ...trip, updatedAt: now.toISOString() }).catch(() => undefined);
   return trip;
 }
 
@@ -35,13 +40,18 @@ export async function updateTrip(uid: string, id: string, action: 'arrived' | 'c
   const ref = tripRef(uid, id);
   const trip = (await ref.get()).data() as SafetyTrip | undefined;
   if (!trip) throw new HttpError(404, 'Trip not found');
+  const sharedRef = db().doc(`sharedTrips/${id}`);
   if (action === 'extend') {
     const base = Math.max(Date.now(), Date.parse(trip.dueAt));
-    await ref.update({ dueAt: new Date(base + (minutes ?? 15) * 60_000).toISOString(), status: 'active', overdueAt: null });
+    const newDue = new Date(base + (minutes ?? 15) * 60_000).toISOString();
+    await ref.update({ dueAt: newDue, status: 'active', overdueAt: null });
+    await sharedRef.update({ dueAt: newDue, status: 'active', updatedAt: nowIso() }).catch(() => undefined);
   } else if (action === 'escalated') {
     await ref.update({ status: 'escalated', escalatedBy: 'device', escalatedAt: nowIso() });
+    await sharedRef.update({ status: 'escalated', updatedAt: nowIso() }).catch(() => undefined);
   } else {
     await ref.update({ status: action, endedAt: nowIso() });
+    await sharedRef.update({ status: action, endedAt: nowIso(), updatedAt: nowIso() }).catch(() => undefined);
   }
 }
 
@@ -49,7 +59,10 @@ export async function tripLocation(uid: string, id: string, location: EmergencyL
   const ref = tripRef(uid, id);
   const trip = (await ref.get()).data() as SafetyTrip | undefined;
   if (!trip || !['active', 'overdue'].includes(trip.status)) return;
-  if (!trip.lastLocation || Date.parse(location.timestamp) > Date.parse(trip.lastLocation.timestamp)) await ref.update({ lastLocation: location });
+  if (!trip.lastLocation || Date.parse(location.timestamp) > Date.parse(trip.lastLocation.timestamp)) {
+    await ref.update({ lastLocation: location });
+    await db().doc(`sharedTrips/${id}`).update({ lastLocation: location, updatedAt: nowIso() }).catch(() => undefined);
+  }
 }
 
 /**

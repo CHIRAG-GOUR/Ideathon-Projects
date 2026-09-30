@@ -14,7 +14,31 @@ export const DEFAULT_SETTINGS: UserSettings = {
   trackingIntervalSec: 10,
   region: 'IN',
   discreet: false,
+  silenceSiren: false,
 };
+
+export function getStoredSettings(): UserSettings {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('shev.settings') : null;
+    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_SETTINGS;
+}
+
+export function saveStoredSettings(s: Partial<UserSettings>): UserSettings {
+  try {
+    const curr = getStoredSettings();
+    const updated = { ...curr, ...s };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('shev.settings', JSON.stringify(updated));
+    }
+    return updated;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 export function useAuthUser(): { user: FbUser | null; ready: boolean } {
   const [s, set] = useState<{ user: FbUser | null; ready: boolean }>({ user: null, ready: false });

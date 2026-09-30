@@ -12,14 +12,152 @@ body { font-family: 'Plus Jakarta Sans Variable', system-ui, sans-serif; text-re
   .num { font-variant-numeric: tabular-nums; }
 }
 
-/* Map markers */
-.leaflet-container { font-family: inherit; background: #FFF5F6; }
+/* Map markers and Rapido/Uber style live navigation puck */
+.leaflet-container { font-family: inherit; background: #F8FAFC; }
+.leaflet-control-attribution,
+.leaflet-attribution-flag,
+.leaflet-control-attribution a {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
 .shev-me { position: relative; width: 28px; height: 28px; border-radius: 9999px; background: rgba(240,36,82,.18); display: grid; place-items: center; }
 .shev-me > span { width: 16px; height: 16px; border-radius: 9999px; background: #F02452; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(213,16,63,.45); }
 .shev-urgent::after { content: ''; position: absolute; inset: -10px; border-radius: 9999px; border: 3px solid #F02452; animation: shev-ping 1.6s ease-out infinite; }
 .shev-heading { position: absolute; inset: -14px; background: no-repeat center top / 14px 14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0l4 9-4-2-4 2z' fill='%23D5103F'/%3E%3C/svg%3E"); }
+
+/* Uber / Rapido navigation puck */
+.shev-rider {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+}
+.shev-rider-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: rgba(240, 36, 82, 0.2);
+  border: 2px solid rgba(240, 36, 82, 0.6);
+  animation: shev-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.shev-rider-core {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #F02452;
+  border: 3px solid #ffffff;
+  box-shadow: 0 3px 12px rgba(240, 36, 82, 0.5), 0 1px 4px rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+.shev-rider-heading {
+  position: absolute;
+  inset: -14px;
+  background: no-repeat center top / 16px 16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0l5 11-5-3-5 3z' fill='%23F02452' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 3;
+  transition: transform 0.2s linear;
+}
+
 .shev-pin { width: 34px; height: 34px; border-radius: 12px; background: #fff; display: grid; place-items: center; font-size: 18px; box-shadow: 0 4px 14px rgba(42,21,25,.18); border: 2px solid #FFE0E6; }
+.shev-pickup {
+  background: #10B981 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45) !important;
+  border-radius: 9999px !important;
+}
+.shev-destination {
+  background: #F02452 !important;
+  border-color: #BE123C !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(240, 36, 82, 0.45) !important;
+}
 .shev-responder, .shev-contact { border-color: #13A36E; }
-@keyframes shev-ping { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes shev-ping { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* Lady Driver on Scooty Moving Marker */
+.shev-scooty-marker {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+.shev-scooty-aura {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(240, 36, 82, 0.4) 0%, rgba(240, 36, 82, 0.08) 65%, transparent 100%);
+  animation: shev-scooty-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: 1;
+}
+.shev-scooty-rotator {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 2;
+}
+.shev-scooty-beam {
+  position: absolute;
+  top: -14px;
+  width: 16px;
+  height: 22px;
+  background: linear-gradient(to top, rgba(254, 240, 138, 0.75), transparent);
+  clip-path: polygon(30% 100%, 70% 100%, 100% 0%, 0% 0%);
+  pointer-events: none;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 6px #fef08a);
+}
+.shev-scooty-icon {
+  filter: drop-shadow(0 4px 10px rgba(240, 36, 82, 0.5));
+  transition: transform 0.2s ease-in-out;
+}
+.shev-moving .shev-scooty-icon {
+  animation: shev-scooty-ride 0.45s ease-in-out infinite alternate;
+}
+.shev-scooty-badge {
+  position: absolute;
+  bottom: -10px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1.5px 7px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+@keyframes shev-scooty-pulse {
+  0% { transform: scale(0.85); opacity: 0.95; }
+  50% { transform: scale(1.4); opacity: 0.25; }
+  100% { transform: scale(0.85); opacity: 0.95; }
+}
+@keyframes shev-scooty-ride {
+  0% { transform: translateY(0px) rotate(0deg); }
+  100% { transform: translateY(-2px) rotate(1.2deg); }
+}
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+

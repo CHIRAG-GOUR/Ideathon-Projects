@@ -1,19 +1,21 @@
 'use client';
 import { useState } from 'react';
 import { signOut } from 'firebase/auth';
-import type { EmergencyContact, User } from '@shared/types';
+import type { EmergencyContact, User, UserSettings } from '@shared/types';
 import { EmergencyNumberService } from '@shared/emergency';
 import { auth } from '@/lib/firebase';
 import { api } from '@/lib/api';
-import { DEFAULT_SETTINGS, saveProfile } from '@/lib/data';
+import { DEFAULT_SETTINGS, saveProfile, saveStoredSettings } from '@/lib/data';
 import { hasNative, invoke, requestPermission, type NativeInfo, type PermissionName } from '@/lib/native';
 import { Button, Card, Field, Toggle, cn, inputCls } from '@/components/ui';
 import { normalizePhone } from '../circle/Circle';
 
 interface Props {
-  uid: string;
+  uid: string | null;
   profile: User | null;
   contacts: EmergencyContact[];
+  settings?: UserSettings;
+  onUpdateSettings?: (patch: Partial<UserSettings>) => void;
   native?: NativeInfo | null;
   onNativeRefresh?: () => void;
   demo?: boolean;
@@ -28,22 +30,45 @@ const PERMS: { name: PermissionName; label: string; why: string }[] = [
   { name: 'receiveSms', label: 'SOS alerts from your circle', why: 'Rings loudly when a Shevolution SOS text arrives from someone who added you.' },
 ];
 
-export function Settings({ uid, profile, contacts, native, onNativeRefresh, demo, onDemo }: Props) {
+export function Settings({ uid, profile, contacts, settings: externalSettings, onUpdateSettings, native, onNativeRefresh, demo, onDemo }: Props) {
   const base: Omit<User, 'uid'> = profile ?? {
     name: auth().currentUser?.displayName ?? '',
     phone: null,
     email: auth().currentUser?.email ?? null,
     profile: { shareMedical: false },
-    settings: { ...DEFAULT_SETTINGS, region: native?.region ?? 'IN' },
+    settings: { ...DEFAULT_SETTINGS, ...externalSettings, region: native?.region ?? 'IN' },
     createdAt: new Date().toISOString(),
   };
-  const [u, setU] = useState<Omit<User, 'uid'>>(() => ({ name: base.name, phone: base.phone, email: base.email, profile: { ...base.profile }, settings: { ...DEFAULT_SETTINGS, ...base.settings }, createdAt: base.createdAt }));
+  const [u, setU] = useState<Omit<User, 'uid'>>(() => ({
+    name: base.name,
+    phone: base.phone,
+    email: base.email,
+    profile: { ...base.profile },
+    settings: { ...DEFAULT_SETTINGS, ...externalSettings, ...base.settings },
+    createdAt: base.createdAt,
+  }));
   const verifiedPhone = auth().currentUser?.phoneNumber ?? null;
   const [phone, setPhone] = useState(verifiedPhone ?? base.phone ?? '');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const s = u.settings;
-  const set = (patch: Partial<typeof s>) => setU({ ...u, settings: { ...s, ...patch } });
+  const s = { ...u.settings, ...externalSettings };
+
+  const set = (patch: Partial<typeof s>) => {
+    const next = { ...s, ...patch };
+    setU((prev) => ({ ...prev, settings: next }));
+    onUpdateSettings?.(patch);
+    if (uid) {
+      const p = phone.trim() ? normalizePhone(phone, next.region) : null;
+      const clean = {
+        ...u,
+        phone: p,
+        settings: next,
+        name: u.name.trim() || 'Me',
+        profile: Object.fromEntries(Object.entries(u.profile).map(([k, v]) => [k, v === '' ? null : v])) as User['profile'],
+      };
+      saveProfile(uid, clean).catch(() => undefined);
+    }
+  };
   const setP = (patch: Partial<typeof u.profile>) => setU({ ...u, profile: { ...u.profile, ...patch } });
 
   async function save() {
@@ -53,7 +78,10 @@ export function Settings({ uid, profile, contacts, native, onNativeRefresh, demo
       const p = phone.trim() ? normalizePhone(phone, s.region) : null;
       if (p && !/^\+[1-9]\d{6,14}$/.test(p)) throw new Error('Enter your mobile number with country code.');
       const clean = { ...u, phone: p, name: u.name.trim() || 'Me', profile: Object.fromEntries(Object.entries(u.profile).map(([k, v]) => [k, v === '' ? null : v])) as User['profile'] };
-      await saveProfile(uid, clean);
+      saveStoredSettings(clean.settings);
+      if (uid) {
+        await saveProfile(uid, clean);
+      }
       setMsg('Saved.');
     } catch (e) {
       setMsg((e as Error).message);
@@ -110,6 +138,7 @@ export function Settings({ uid, profile, contacts, native, onNativeRefresh, demo
         <h3 className="font-extrabold">SOS</h3>
         <div className="divide-y divide-line">
           <Toggle on={s.sound} onChange={(v) => set({ sound: v })} label="SOS siren" hint="Loud, distinct alarm when SOS starts. You can silence it on the SOS screen." />
+          {s.sound && <Toggle on={s.silenceSiren} onChange={(v) => set({ silenceSiren: v })} label="🔇 Silence siren (testing)" hint="Mutes the siren temporarily — useful in offices or while testing. Your sound setting stays ON." />}
           <Toggle on={s.vibration} onChange={(v) => set({ vibration: v })} label="Vibration" />
           <Toggle on={s.discreet} onChange={(v) => set({ discreet: v })} label="Discreet mode" hint="A calmer, minimal home screen. SOS stays one hold away. The app is still visible on your phone." />
         </div>

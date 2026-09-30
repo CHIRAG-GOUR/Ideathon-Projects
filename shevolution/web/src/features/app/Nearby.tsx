@@ -2,11 +2,11 @@
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import type { EmergencyLocation } from '@shared/types';
+import type { EmergencyContact, EmergencyLocation } from '@shared/types';
 import type { RegionConfig } from '@shared/emergency';
 import { directionsLink, fmtDistance } from '@shared/geo';
 import { nearbyHelp, type HelpKind, type HelpPlace } from '@/lib/places';
-import { currentFix, dial, openExternal } from '@/lib/native';
+import { currentFix, dial, hasNative, invoke, openExternal } from '@/lib/native';
 import { Button, Card, E3d, Spinner, cn } from '@/components/ui';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -18,11 +18,23 @@ const TABS: { kind: HelpKind; label: string; icon: string }[] = [
   { kind: 'army', label: 'Army', icon: 'shield' },
 ];
 
-export function Nearby({ region }: { region: RegionConfig }) {
+export function Nearby({
+  region,
+  contacts = [],
+  name = 'I',
+  demo = false,
+}: {
+  region: RegionConfig;
+  contacts?: EmergencyContact[];
+  name?: string;
+  demo?: boolean;
+}) {
   const [loc, setLoc] = useState<EmergencyLocation | null>(null);
   const [places, setPlaces] = useState<HelpPlace[] | null>(null);
   const [tab, setTab] = useState<HelpKind>('police');
   const [err, setErr] = useState<string | null>(null);
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastDone, setBroadcastDone] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -38,6 +50,48 @@ export function Nearby({ region }: { region: RegionConfig }) {
   }, []);
 
   const list = (places ?? []).filter((p) => p.kind === tab).slice(0, 15);
+  const withPhone = contacts.filter((c) => c.phone);
+
+  async function broadcastNearbyHelp() {
+    if (!loc) return;
+    setBroadcasting(true);
+    const topPlace = list[0];
+    const placeInfo = topPlace ? `${topPlace.name} (${fmtDistance(topPlace.distance)} away)` : `Emergency ${tab}`;
+    const mapLink = `https://maps.google.com/?q=${loc.latitude},${loc.longitude}`;
+    const body = `🛡️ *Shevolution Safety Update from ${name}*\n📍 *Current Location:* ${mapLink}\n🚨 *Nearest ${tab.toUpperCase()}:* ${placeInfo}\n📞 *Emergency Helpline:* ${region.primary.number}`;
+
+    if (!demo && hasNative()) {
+      // 1. Direct SMS
+      if (withPhone.length > 0) {
+        invoke('smsSend', {
+          to: withPhone.map((c) => ({ id: c.id, phone: c.phone })),
+          body,
+          tag: 'nearby_help',
+        });
+      }
+      // 2. Direct WhatsApp
+      withPhone.forEach((c) => {
+        if (c.phone) invoke('whatsapp', { phone: c.phone, text: body });
+      });
+      // 3. Direct Email
+      const emailTargets = contacts.filter((c) => c.email).map((c) => c.email!);
+      if (emailTargets.length > 0) {
+        invoke('email', {
+          to: emailTargets,
+          subject: `🛡️ Nearby Safety & Location Update from ${name}`,
+          body,
+        });
+      }
+    } else if (!demo) {
+      if (withPhone.length > 0) {
+        window.location.href = `sms:${withPhone.map((c) => c.phone).join(',')}?body=${encodeURIComponent(body)}`;
+      }
+    }
+
+    setBroadcastDone(true);
+    setBroadcasting(false);
+    setTimeout(() => setBroadcastDone(false), 5000);
+  }
 
   return (
     <div className="space-y-4">
@@ -52,6 +106,27 @@ export function Nearby({ region }: { region: RegionConfig }) {
           ))}
         </div>
         {region.primary.note && <p className="mt-2 text-xs text-ink-muted">{region.primary.note}</p>}
+      </Card>
+
+      {/* 1-Tap Broadcast Nearby Help & Location */}
+      <Card className="border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-extrabold text-emerald-950">📡 1-Tap Safety Broadcast</p>
+            <p className="text-xs text-emerald-800">
+              Send your exact live GPS location & nearest {tab} to your emergency circle instantly.
+            </p>
+          </div>
+        </div>
+        <Button
+          big
+          variant="safe"
+          className="mt-3 w-full !min-h-[46px] text-sm font-extrabold"
+          disabled={!loc || broadcasting}
+          onClick={broadcastNearbyHelp}
+        >
+          {broadcasting ? 'Broadcasting…' : broadcastDone ? 'Broadcasted to Circle! ✓ (SMS + WhatsApp + Email)' : `⚡ Broadcast ${tab.toUpperCase()} & Location to Circle`}
+        </Button>
       </Card>
 
       <div className="grid grid-cols-5 gap-2">

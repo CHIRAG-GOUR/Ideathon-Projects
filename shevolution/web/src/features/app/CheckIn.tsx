@@ -6,6 +6,7 @@ import { EmergencyNumberService } from '@shared/emergency';
 import { SMS_TEMPLATES, fillSms, fmtTime } from '@shared/message';
 import { api } from '@/lib/api';
 import { currentFix, hasNative, invoke, onNative } from '@/lib/native';
+import { reverseGeocode } from '@/lib/places';
 import { Button, Card, E3d, Toggle, cn, inputCls } from '@/components/ui';
 
 const PRESETS = ["I'm okay.", 'Reached home safely.', "I'm on my way.", 'Running late but safe.'];
@@ -30,13 +31,40 @@ export function CheckIn({ name, contacts, region, signedIn, demo, initialTo }: {
   async function send() {
     setBusy(true);
     const loc: EmergencyLocation | null = shareLoc ? await currentFix() : null;
+    let area: string | null = null;
+    if (loc) {
+      try {
+        area = await reverseGeocode(loc.latitude, loc.longitude);
+      } catch {
+        /* fallback to coordinates */
+      }
+    }
     const r = EmergencyNumberService.forRegion(region);
-    const body = fillSms(SMS_TEMPLATES.checkin, { name, message, location: loc, time: fmtTime(new Date().toISOString(), r.timeZone), emergency: r.primary.number });
+    const body = fillSms(SMS_TEMPLATES.checkin, {
+      name,
+      message,
+      location: loc,
+      area,
+      time: fmtTime(new Date().toISOString(), r.timeZone),
+      emergency: r.primary.number,
+    });
     const targets = withPhone.filter((c) => to.includes(c.id));
     if (demo) {
       setResults(Object.fromEntries(targets.map((c) => [c.id, 'demo'])));
     } else if (hasNative()) {
+      // Auto-send SMS directly
       invoke('smsSend', { to: targets.map((c) => ({ id: c.id, phone: c.phone })), body, tag: 'checkin' });
+      // Auto-send WhatsApp to each contact (no user tap needed — intent fires in background)
+      targets.forEach((c) => {
+        if (c.phone) invoke('whatsapp', { phone: c.phone, text: body });
+      });
+      // Auto-send email to contacts with email addresses
+      const emailTargets = contacts.filter((c) => to.includes(c.id) && c.email).map((c) => c.email!);
+      if (emailTargets.length > 0) {
+        invoke('email', { to: emailTargets, subject: `👋 Check-in from ${name}`, body });
+      }
+      // Mark all as sent immediately since native handles it
+      setResults(Object.fromEntries(targets.map((c) => [c.id, 'submitted'])));
     } else {
       window.location.href = `sms:${targets.map((c) => c.phone).join(',')}?body=${encodeURIComponent(body)}`;
     }
@@ -51,7 +79,8 @@ export function CheckIn({ name, contacts, region, signedIn, demo, initialTo }: {
         <motion.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 14 }}>
           <E3d name="check" size={96} className="mx-auto" />
         </motion.div>
-        <h2 className="mt-3 text-2xl font-extrabold">Check-in on its way</h2>
+        <h2 className="mt-3 text-2xl font-extrabold">Check-in sent!</h2>
+        <p className="text-sm text-ink-muted">SMS, WhatsApp & email dispatched automatically.</p>
         <ul className="mx-auto mt-4 max-w-xs space-y-2 text-left">
           {withPhone
             .filter((c) => to.includes(c.id))
@@ -92,7 +121,7 @@ export function CheckIn({ name, contacts, region, signedIn, demo, initialTo }: {
         <Toggle on={shareLoc} onChange={setShareLoc} label="Include my current location" />
       </Card>
       <Button big className="w-full" disabled={busy || !to.length} onClick={send}>
-        👋 Send check-in
+        👋 Send check-in (SMS + WhatsApp + email)
       </Button>
     </div>
   );

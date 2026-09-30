@@ -36,6 +36,8 @@ export interface UserSettings {
   trackingIntervalSec: number;
   region: string; // ISO country code, e.g. "IN"
   discreet: boolean;
+  /** Mute the siren temporarily (e.g. while testing in an office). Sound setting is preserved. */
+  silenceSiren: boolean;
 }
 
 export interface User {
@@ -138,7 +140,9 @@ export interface SafetyTrip {
   id: string;
   kind: TripKind;
   label: string;
+  pickup?: { name: string; latitude: number; longitude: number } | null;
   destination: { name: string; latitude: number; longitude: number } | null;
+  route?: [number, number][] | null;
   startedAt: string;
   dueAt: string;
   status: TripStatus;

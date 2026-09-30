@@ -40,20 +40,24 @@ final class Sos {
                 k.put("id", x.optString("id"));
                 k.put("name", x.optString("name"));
                 k.put("phone", x.isNull("phone") ? JSONObject.NULL : x.optString("phone"));
+                k.put("email", x.optString("email", ""));
+                k.put("priority", x.optInt("priority", 0));
                 k.put("sms", sms);
                 k.put("smsStatus", sms ? "pending" : "skipped");
                 k.put("via", JSONObject.NULL);
                 k.put("smsAt", JSONObject.NULL);
                 k.put("attempts", 0);
-                if (x.optBoolean("live")) {
-                    k.put("token", Store.randomId(18)); // opaque, per contact; only its SHA-256 ever leaves the phone
-                    anyLive = true;
-                }
+                String token = x.optString("token", "");
+                if (token.isEmpty()) token = Store.randomId(18);
+                k.put("token", token);
+                anyLive = true;
                 contacts.put(k);
             }
             boolean device = s.get("device") != null;
             sos = new JSONObject();
-            sos.put("sosId", Store.randomId(16));
+            String sosId = Store.randomId(16);
+            sos.put("sosId", sosId);
+            sos.put("publicToken", Store.randomId(18));
             sos.put("startedAt", Store.iso(System.currentTimeMillis()));
             sos.put("status", "active");
             sos.put("endedAt", JSONObject.NULL);

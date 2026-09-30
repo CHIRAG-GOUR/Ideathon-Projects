@@ -165,13 +165,20 @@ final class Bridge {
                 // The SOS text for WhatsApp/email, with this contact's personal live link when they have one.
                 JSONObject sos = store.get("sos");
                 JSONObject cfg = store.config();
-                String live = null;
+                String origin = cfg.optString("origin", "https://shevolution-ideathon.web.app");
+                String token = null;
                 JSONArray ks = sos == null ? null : sos.optJSONArray("contacts");
                 for (int i = 0; ks != null && i < ks.length(); i++) {
                     JSONObject k = ks.getJSONObject(i);
-                    if (k.optString("id").equals(x.optString("contactId")) && k.has("token")) live = cfg.optString("origin") + "/e/" + k.optString("token");
+                    if (k.optString("id").equals(x.optString("contactId")) && !k.optString("token", "").isEmpty()) {
+                        token = k.optString("token");
+                    }
+                }
+                if (token == null && sos != null) {
+                    token = sos.optString("publicToken", sos.optString("sosId", ""));
                 }
                 JSONObject loc = sos == null ? null : sos.optJSONObject("lastLocation");
+                String live = Sms.liveTrackingUrl(origin, sos, loc, token, cfg);
                 return new JSONObject().put("text", Sms.fill(Sms.template(cfg, "sos", Sms.DEFAULT_SOS), cfg, loc, live, Sms.areaExtras(sos)));
             }
             case "whatsapp":
@@ -181,6 +188,14 @@ final class Bridge {
                 String[] list = new String[to == null ? 0 : to.length()];
                 for (int i = 0; i < list.length; i++) list[i] = to.getString(i);
                 return new JSONObject().put("opened", Sms.email(c, list, x.optString("subject"), x.optString("body")));
+            }
+            case "share": {
+                Intent s = new Intent(Intent.ACTION_SEND);
+                s.setType("text/plain");
+                s.putExtra(Intent.EXTRA_SUBJECT, x.optString("subject", "Shevolution Safe Ride Live Track"));
+                s.putExtra(Intent.EXTRA_TEXT, x.optString("text"));
+                a.startActivity(Intent.createChooser(s, "Share via").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return new JSONObject();
             }
             case "pickContact":
                 a.pickContact();
@@ -238,7 +253,7 @@ final class Bridge {
         }
     }
 
-    /** A single current fix for Nearby Help, trips and check-ins. Falls back to the last known position, labelled. */
+    /** A single current fix for Nearby Help, trips and check-ins. Continues refining until high accuracy (< 20m) is obtained. */
     private void oneShotLocation() {
         if (!has(Manifest.permission.ACCESS_FINE_LOCATION) && !has(Manifest.permission.ACCESS_COARSE_LOCATION)) {
             Events.emit("location_error", "error", "Location permission is off");
@@ -246,14 +261,35 @@ final class Bridge {
         }
         final LocationManager lm = c.getSystemService(LocationManager.class);
         final Handler h = new Handler(Looper.getMainLooper());
-        final boolean[] done = {false};
+        final float[] bestAcc = {999999f};
+
+        // First emit whatever recent fix is available as instant preview (up to 30 min old)
+        Location recentBest = null;
+        for (String p : lm.getAllProviders()) {
+            try {
+                Location x = lm.getLastKnownLocation(p);
+                if (x != null && (recentBest == null || x.getTime() > recentBest.getTime())) recentBest = x;
+            } catch (SecurityException ignored) {
+            }
+        }
+        if (recentBest != null && (System.currentTimeMillis() - recentBest.getTime() < 1800_000)) {
+            bestAcc[0] = recentBest.hasAccuracy() ? recentBest.getAccuracy() : 500f;
+            Events.emit("location", "location", Store.fix(recentBest, false));
+        }
+
         final LocationListener l = new LocationListener() {
             @Override
             public void onLocationChanged(Location loc) {
-                if (done[0] || (loc.hasAccuracy() && loc.getAccuracy() > 200)) return;
-                done[0] = true;
-                lm.removeUpdates(this);
-                Events.emit("location", "location", Store.fix(loc, false));
+                float acc = loc.hasAccuracy() ? loc.getAccuracy() : 200f;
+                // Emit whenever accuracy is improved
+                if (acc < bestAcc[0] || bestAcc[0] > 60f) {
+                    bestAcc[0] = acc;
+                    Events.emit("location", "location", Store.fix(loc, false));
+                }
+                // Stop once high precision is achieved (< 15m)
+                if (acc <= 15f) {
+                    try { lm.removeUpdates(this); } catch (Exception ignored) {}
+                }
             }
 
             @Override
@@ -268,11 +304,17 @@ final class Bridge {
             public void onStatusChanged(String p, int s, Bundle b) {
             }
         };
+
         h.post(new Runnable() {
             @Override
             public void run() {
                 try {
-                    for (String p : new String[]{LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER}) {
+                    java.util.List<String> provs = new java.util.ArrayList<>();
+                    if (Build.VERSION.SDK_INT >= 31 && lm.hasProvider(LocationManager.FUSED_PROVIDER)) provs.add(LocationManager.FUSED_PROVIDER);
+                    provs.add(LocationManager.GPS_PROVIDER);
+                    provs.add(LocationManager.NETWORK_PROVIDER);
+                    provs.add(LocationManager.PASSIVE_PROVIDER);
+                    for (String p : provs) {
                         if (lm.getAllProviders().contains(p)) lm.requestLocationUpdates(p, 1000, 0f, l, Looper.getMainLooper());
                     }
                 } catch (SecurityException e) {
@@ -280,16 +322,12 @@ final class Bridge {
                 }
             }
         });
+
         h.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (done[0]) return;
-                done[0] = true;
-                lm.removeUpdates(l);
-                JSONObject lk = Trips.lastKnown(c);
-                if (lk != null) Events.emit("location", "location", lk);
-                else Events.emit("location_error", "error", "Location unavailable");
+                try { lm.removeUpdates(l); } catch (Exception ignored) {}
             }
-        }, 20_000);
+        }, 12_000);
     }
 }

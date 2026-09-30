@@ -72,9 +72,15 @@ const api = router({
     await updateTrip(uid, b.tripId, b.action, b.minutes);
   },
   'POST /trips/location': async (req) => {
-    const d = await requireDevice(req);
+    const uid = await requireOwner(req);
     const b = z.object({ tripId: opaqueId, location: locationSchema }).parse(req.body);
-    await tripLocation(d.uid, b.tripId, b.location);
+    await tripLocation(uid, b.tripId, b.location);
+  },
+  'GET /trips/shared': async (req) => {
+    const id = opaqueId.parse(req.query.id);
+    const snap = await db().doc(`sharedTrips/${id}`).get();
+    if (!snap.exists) throw new HttpError(404, 'Shared trip not found');
+    return snap.data();
   },
   'POST /checkins': async (req) => {
     const uid = await requireOwner(req);

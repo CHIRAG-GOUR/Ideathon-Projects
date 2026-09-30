@@ -100,29 +100,85 @@ final class Sms {
         return out[0];
     }
 
-    /** Opens the user's own WhatsApp chat with this number, message pre-filled. WhatsApp requires the user to tap Send. */
+    /** Opens the user's own WhatsApp chat with this number, message pre-filled. */
     static boolean whatsapp(Context c, String phone, String text) {
-        String digits = phone.replaceAll("[^0-9]", "");
-        Uri u = Uri.parse("https://api.whatsapp.com/send?phone=" + digits + "&text=" + Uri.encode(text));
-        for (String pkg : new String[]{"com.whatsapp", "com.whatsapp.w4b"}) {
+        if (text == null) text = "";
+        if (phone != null && !phone.trim().isEmpty()) {
+            String digits = phone.replaceAll("[^0-9]", "");
+            if (digits.length() == 10) digits = "91" + digits;
+            else if (digits.length() == 11 && digits.startsWith("0")) digits = "91" + digits.substring(1);
+            
+            // 1. Direct whatsapp scheme intent
+            Uri waDirect = Uri.parse("whatsapp://send?phone=" + digits + "&text=" + Uri.encode(text));
+            for (String pkg : new String[]{"com.whatsapp", "com.whatsapp.w4b"}) {
+                try {
+                    c.startActivity(new Intent(Intent.ACTION_VIEW, waDirect).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    return true;
+                } catch (Exception ignored) {
+                }
+            }
             try {
-                c.startActivity(new Intent(Intent.ACTION_VIEW, u).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                c.startActivity(new Intent(Intent.ACTION_VIEW, waDirect).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 return true;
             } catch (Exception ignored) {
             }
+
+            // 2. Fallback to https://api.whatsapp.com
+            Uri u = Uri.parse("https://api.whatsapp.com/send?phone=" + digits + "&text=" + Uri.encode(text));
+            for (String pkg : new String[]{"com.whatsapp", "com.whatsapp.w4b"}) {
+                try {
+                    c.startActivity(new Intent(Intent.ACTION_VIEW, u).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    return true;
+                } catch (Exception ignored) {
+                }
+            }
+            try {
+                c.startActivity(new Intent(Intent.ACTION_VIEW, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return true;
+            } catch (Exception ignored) {
+            }
+        }
+        // Generic WhatsApp share
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
+        sendIntent.setType("text/plain");
+        sendIntent.putExtra(Intent.EXTRA_TEXT, text);
+        for (String pkg : new String[]{"com.whatsapp", "com.whatsapp.w4b"}) {
+            try {
+                c.startActivity(sendIntent.setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return true;
+            } catch (Exception ignored) {
+            }
+        }
+        try {
+            c.startActivity(Intent.createChooser(sendIntent, "Share SOS via").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (Exception ignored) {
         }
         return false;
     }
 
     /** The user's own email app, addressed to the contacts, pre-filled. */
     static boolean email(Context c, String[] to, String subject, String body) {
-        Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).putExtra(Intent.EXTRA_EMAIL, to)
-                .putExtra(Intent.EXTRA_SUBJECT, subject).putExtra(Intent.EXTRA_TEXT, body).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"));
+        if (to != null && to.length > 0) i.putExtra(Intent.EXTRA_EMAIL, to);
+        i.putExtra(Intent.EXTRA_SUBJECT, subject);
+        i.putExtra(Intent.EXTRA_TEXT, body);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             c.startActivity(i);
             return true;
         } catch (Exception e) {
-            return false;
+            try {
+                Intent alt = new Intent(Intent.ACTION_SEND);
+                alt.setType("message/rfc822");
+                if (to != null && to.length > 0) alt.putExtra(Intent.EXTRA_EMAIL, to);
+                alt.putExtra(Intent.EXTRA_SUBJECT, subject);
+                alt.putExtra(Intent.EXTRA_TEXT, body);
+                c.startActivity(Intent.createChooser(alt, "Send email").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return true;
+            } catch (Exception ignored) {
+                return false;
+            }
         }
     }
 
@@ -138,10 +194,10 @@ final class Sms {
         String coords = "";
         if (loc != null) {
             double la = loc.optDouble("latitude"), lo = loc.optDouble("longitude");
-            locline = "\uD83D\uDCCD " + (loc.optBoolean("lastKnown") ? "Last known location" : "Location") + ": https://maps.google.com/?q=" + coord(la) + "," + coord(lo);
-            coords = "Lat " + coord(la) + " Lng " + coord(lo) + " (" + (loc.isNull("accuracy") ? "unknown" : "±" + Math.round(loc.optDouble("accuracy")) + " m") + ")";
+            locline = "\uD83D\uDDFA\uFE0F Google Maps Location: https://maps.google.com/?q=" + coord(la) + "," + coord(lo);
+            coords = "\uD83D\uDCCD GPS Live Coordinates: " + coord(la) + ", " + coord(lo) + " (" + (loc.isNull("accuracy") ? "unknown" : "±" + Math.round(loc.optDouble("accuracy")) + " m") + ")";
         } else {
-            locline = "\uD83D\uDCCD Location: not available yet";
+            locline = "\uD83D\uDDFA\uFE0F Google Maps Location: not available yet";
         }
         String time = time(System.currentTimeMillis(), cfg.optString("timeZone", "Asia/Kolkata"));
         Matcher m = Pattern.compile("\\{(\\w+)\\}").matcher(template);
@@ -153,14 +209,14 @@ final class Sms {
             else if ("coords".equals(k)) v = coords;
             else if ("time".equals(k)) v = time;
             else if ("emergency".equals(k)) v = cfg.optString("emergencyNumber", "112");
-            else if ("live".equals(k)) v = liveUrl != null ? "Live location: " + liveUrl + "\n" : "";
-            else if ("area".equals(k)) v = extras != null && extras.optString("area").length() > 0 ? "\uD83C\uDFE0 Area (approx.): " + extras.optString("area") : "";
+            else if ("live".equals(k)) v = liveUrl != null ? "\uD83D\uDD34 Live Moving Map Tracker: " + liveUrl + "\n" : "";
+            else if ("area".equals(k)) v = extras != null && extras.optString("area").length() > 0 ? "\uD83D\uDCCD Area: " + extras.optString("area") : "";
             else if (extras != null && extras.has(k)) v = extras.optString(k);
             else v = "";
             m.appendReplacement(out, Matcher.quoteReplacement(v));
         }
         m.appendTail(out);
-        return out.toString().replaceAll("\n{2,}", "\n").trim();
+        return out.toString().replaceAll("\n{3,}", "\n\n").trim();
     }
 
     static JSONObject areaExtras(JSONObject sos) {
@@ -183,5 +239,31 @@ final class Sms {
         return t != null && t.has(key) ? t.optString(key) : fallback;
     }
 
-    static final String DEFAULT_SOS = "\uD83C\uDD98 SOS! I NEED HELP!\n{name} is in DANGER and needs help NOW.\n{locline}\n{coords}\n{area}\n\uD83D\uDD52 Time: {time}\n{live}\uD83D\uDCDE Call me NOW. If I don't answer, call {emergency} and come to this location.\n- Shevolution SOS";
+    static String liveTrackingUrl(String origin, JSONObject sos, JSONObject loc, String token, JSONObject cfg) {
+        if (origin == null || origin.trim().isEmpty()) origin = "https://shevolution-ideathon.web.app";
+        String sosId = sos != null ? sos.optString("sosId", "sos") : "sos";
+        String name = cfg != null ? cfg.optString("userName", "Shevolution User") : "Shevolution User";
+
+        if (loc != null && !loc.isNull("latitude") && !loc.isNull("longitude")) {
+            double la = loc.optDouble("latitude", 0);
+            double lo = loc.optDouble("longitude", 0);
+            if (la != 0 || lo != 0) {
+                StringBuilder sb = new StringBuilder(origin);
+                sb.append("/trip?id=").append(Uri.encode(sosId.length() > 10 ? sosId.substring(0, 10) : sosId));
+                sb.append("&p=").append(coord(la)).append(",").append(coord(lo));
+                sb.append("&n=").append(Uri.encode(name));
+                sb.append("&sos=1");
+                if (sos != null && !sos.isNull("area") && !sos.optString("area").trim().isEmpty()) {
+                    sb.append("&pn=").append(Uri.encode(sos.optString("area")));
+                }
+                return sb.toString();
+            }
+        }
+        if (token != null && !token.trim().isEmpty()) {
+            return origin + "/trip?id=" + Uri.encode(token) + "&n=" + Uri.encode(name) + "&sos=1";
+        }
+        return origin + "/trip?id=" + Uri.encode(sosId) + "&n=" + Uri.encode(name) + "&sos=1";
+    }
+
+    static final String DEFAULT_SOS = "\uD83C\uDD98 SOS! I NEED HELP NOW!\n{name} is in DANGER and needs IMMEDIATE HELP.\n\n{locline}\n{coords}\n{area}\n{live}\uD83D\uDD52 Time: {time}\n\uD83D\uDCDE Call me NOW. If I don't answer, call {emergency} and rush to this location.\n- Shevolution SOS";
 }

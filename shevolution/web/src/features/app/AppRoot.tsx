@@ -9,7 +9,7 @@ import { isEmergency } from '@shared/sos';
 import type { SosEvent } from '@shared/types';
 import { auth, db, loadConfig } from '@/lib/firebase';
 import { api } from '@/lib/api';
-import { circleAlertsQuery, DEFAULT_SETTINGS, saveProfile, useAuthUser, useContacts, useList, useProfile } from '@/lib/data';
+import { circleAlertsQuery, DEFAULT_SETTINGS, getStoredSettings, saveStoredSettings, saveProfile, useAuthUser, useContacts, useList, useProfile } from '@/lib/data';
 import { hasNative, invoke, onNative, requestPermission, type NativeInfo } from '@/lib/native';
 import { DemoBanner, Logo, Pill, Sheet, Button } from '@/components/ui';
 import { SignIn } from '@/components/SignIn';
@@ -24,6 +24,7 @@ import { CheckIn } from './CheckIn';
 import { Nearby } from './Nearby';
 import { FakeCall } from './FakeCall';
 import { useSos } from './useSos';
+import type { UserSettings } from '@shared/types';
 
 const TITLES: Partial<Record<Screen, string>> = { circle: 'My Safety Circle', trip: 'Safe Trip', timer: 'Safety Timer', checkin: 'Check In', nearby: 'Nearby Help', fakecall: 'Fake Call', settings: 'Settings', history: 'History', alert: 'SOS alert', watch: 'SOS alert' };
 const readLS = (k: string) => {
@@ -55,11 +56,30 @@ export function AppRoot() {
   const [cancelFlash, setCancelFlash] = useState(false);
   const [disclose, setDisclose] = useState<null | 'location' | 'sms' | 'notifications'>(null);
   const [alertSos, setAlertSos] = useState<{ sosId?: string; error?: string } | null>(null);
+  const [localSettings, setLocalSettings] = useState<UserSettings>(() => getStoredSettings());
   const sos = useSos(demo, contacts);
 
-  const settings = { ...DEFAULT_SETTINGS, ...profile?.settings };
+  const settings: UserSettings = { ...DEFAULT_SETTINGS, ...profile?.settings, ...localSettings };
   const region = EmergencyNumberService.forRegion(settings.region || native?.region);
   const name = profile?.name || user?.displayName || 'Me';
+
+  const updateSetting = useCallback(
+    (patch: Partial<UserSettings>) => {
+      const updated = saveStoredSettings(patch);
+      setLocalSettings(updated);
+      if (uid) {
+        saveProfile(uid, {
+          name: profile?.name || user?.displayName || 'Me',
+          phone: profile?.phone ?? null,
+          email: profile?.email ?? null,
+          profile: profile?.profile ?? { shareMedical: false },
+          settings: updated,
+          createdAt: profile?.createdAt || new Date().toISOString(),
+        }).catch(() => undefined);
+      }
+    },
+    [uid, profile, user]
+  );
 
   const refreshNative = useCallback(() => {
     const i = invoke<NativeInfo>('info');
@@ -91,11 +111,11 @@ export function AppRoot() {
         phone: user?.phoneNumber ?? null,
         email: user?.email ?? null,
         profile: { shareMedical: false },
-        settings: { ...DEFAULT_SETTINGS, region: native?.region ?? 'IN' },
+        settings: { ...DEFAULT_SETTINGS, ...localSettings, region: native?.region ?? 'IN' },
         createdAt: new Date().toISOString(),
       }).catch(() => undefined);
     }
-  }, [uid, profile, user, native?.region]);
+  }, [uid, profile, user, native?.region, localSettings]);
 
   // Give the native safety layer everything it needs to run an SOS with no network.
   useEffect(() => {
@@ -108,11 +128,17 @@ export function AppRoot() {
       timeZone: region.timeZone,
       origin: APP_ORIGIN,
       templates: SMS_TEMPLATES,
-      settings: { sound: settings.sound, vibration: settings.vibration, autoCallNumber: autoCall?.phone ?? null, escalateAfterMin: settings.escalateAfterMin, trackingIntervalSec: settings.trackingIntervalSec },
-      contacts: contacts.map((c) => ({ id: c.id, name: c.name, phone: c.phone, priority: c.priority, sms: c.channels.sms, live: c.channels.live && c.verified, call: c.channels.call })),
+      settings: {
+        sound: settings.sound,
+        silenceSiren: !!settings.silenceSiren,
+        vibration: settings.vibration,
+        autoCallNumber: autoCall?.phone ?? null,
+        escalateAfterMin: settings.escalateAfterMin,
+        trackingIntervalSec: settings.trackingIntervalSec,
+      },
+      contacts: contacts.map((c) => ({ id: c.id, name: c.name, phone: c.phone, email: c.email ?? null, priority: c.priority, sms: c.channels.sms, live: c.channels.live && c.verified, call: c.channels.call })),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contacts, profile, demo, name, region.region]);
+  }, [contacts, profile, demo, name, region.region, region.primary.number, region.timeZone, settings]);
 
   // Register this phone so the safety layer can sync an SOS even with the app closed.
   useEffect(() => {
@@ -238,6 +264,9 @@ export function AppRoot() {
                 name={name}
                 contacts={contacts}
                 discreet={settings.discreet}
+                sound={settings.sound}
+                sirenSilent={!!settings.silenceSiren}
+                onToggleSiren={() => updateSetting({ silenceSiren: !settings.silenceSiren })}
                 native={native}
                 network={network}
                 cancelledFlash={cancelFlash}
@@ -266,22 +295,23 @@ export function AppRoot() {
             ) : screen.s === 'checkin' ? (
               <CheckIn name={name} contacts={contacts} region={region.region} signedIn={!!uid} demo={demo} initialTo={screen.arg ? [screen.arg] : undefined} />
             ) : screen.s === 'nearby' ? (
-              <Nearby region={region} />
+              <Nearby region={region} contacts={contacts} name={name} demo={demo} />
             ) : screen.s === 'fakecall' ? (
               <FakeCall />
             ) : screen.s === 'history' ? (
               uid ? <History uid={uid} /> : <NeedAccount />
             ) : screen.s === 'settings' ? (
-              uid ? (
-                <Settings uid={uid} profile={profile ?? null} contacts={contacts} native={native} onNativeRefresh={refreshNative} demo={demo} onDemo={toggleDemo} />
-              ) : (
-                <div className="space-y-4">
-                  <NeedAccount />
-                  <Button variant="white" className="w-full" onClick={() => toggleDemo(!demo)}>
-                    {demo ? 'Turn off demo mode' : 'Turn on demo mode'}
-                  </Button>
-                </div>
-              )
+              <Settings
+                uid={uid}
+                profile={profile ?? null}
+                contacts={contacts}
+                settings={settings}
+                onUpdateSettings={updateSetting}
+                native={native}
+                onNativeRefresh={refreshNative}
+                demo={demo}
+                onDemo={toggleDemo}
+              />
             ) : screen.s === 'watch' && screen.arg ? (
               <LiveView sosId={screen.arg} compact />
             ) : screen.s === 'alert' ? (

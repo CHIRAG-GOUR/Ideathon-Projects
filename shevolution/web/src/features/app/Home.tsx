@@ -12,6 +12,9 @@ interface Props {
   name: string;
   contacts: EmergencyContact[];
   discreet: boolean;
+  sound: boolean;
+  sirenSilent: boolean;
+  onToggleSiren: () => void;
   native: NativeInfo | null;
   network: 'online' | 'weak' | 'offline';
   cancelledFlash: boolean;
@@ -102,8 +105,37 @@ export function Home(p: Props) {
             )}
           </AnimatePresence>
         </div>
+
+        <div className="mb-3 flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={p.onToggleSiren}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold shadow-sm transition-transform active:scale-95',
+              p.sirenSilent || !p.sound
+                ? 'border border-amber-300 bg-amber-50 text-amber-900'
+                : 'border border-sos-200 bg-sos-50 text-sos-700'
+            )}
+            title="Toggle siren sound before starting SOS"
+          >
+            <span className="text-sm">{p.sirenSilent || !p.sound ? '🔕' : '🔊'}</span>
+            <span>{p.sirenSilent || !p.sound ? 'Siren Muted (Silent)' : 'Siren Active (Loud)'}</span>
+            <span
+              className={cn(
+                'ml-1 rounded-full px-2 py-0.5 text-[10px] font-black',
+                p.sirenSilent || !p.sound ? 'bg-amber-200 text-amber-900' : 'bg-sos-500 text-white'
+              )}
+            >
+              {p.sirenSilent || !p.sound ? 'MUTED' : 'ON'}
+            </span>
+          </button>
+          <span className="text-[11px] font-medium text-ink-muted">
+            {p.sirenSilent || !p.sound ? 'Silent SOS · contacts still get texts, calls & location' : 'Loud alarm will blare when SOS is pressed'}
+          </span>
+        </div>
+
         {p.native && (
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="mb-2 flex flex-wrap justify-center gap-2">
             {ready.map((r) => (
               <button key={r.key} onClick={() => !r.ok && p.onFixReadiness(r.key)} className={cn('rounded-full px-3 py-1.5 text-xs font-bold', r.ok ? 'bg-safe-50 text-safe-600' : 'bg-warn-50 text-warn-600')}>
                 {r.ok ? '✓' : '!'} {r.label}
