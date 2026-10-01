@@ -3,7 +3,7 @@
   "private": true,
   "description": "Fortiva — Safety Check Network: periodic check-ins with escalation to your Trusted Circle, plus a real SOS",
   "scripts": {
-    "test": "node --import tsx --test ../safety-core/shared/test/*.test.ts",
+    "test": "npm --prefix ../safety-core test",
     "build:web": "npm --prefix web run build",
     "build:functions": "npm --prefix functions run build",
     "build:apk": "npm run build:web && bash ../safety-core/android/build-app.sh .",

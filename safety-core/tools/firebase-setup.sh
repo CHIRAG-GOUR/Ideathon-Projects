@@ -5,7 +5,7 @@ set -uo pipefail
 PROJECT=$1; NAME=$2; DB=$3; SECRET=$4
 fb() { npx -y firebase-tools@latest "$@"; }
 echo "== Creating Firebase project $PROJECT"
-fb projects:create "$PROJECT" --display-name "$NAME" || echo "!! Could not create $PROJECT (already yours, or the ID is taken). If taken, pick a new ID and replace '$PROJECT' in .firebaserc, firebase.json (hosting.site), package.json and functions/.env (APP_ORIGIN)."
+fb projects:create "$PROJECT" --display-name "$NAME" || echo "!! Could not create $PROJECT (already yours, or the ID is taken). If taken, pick a new ID and replace '$PROJECT' everywhere in this app: .firebaserc, firebase.json (hosting.site), package.json, functions/.env (APP_ORIGIN), web/next.config.mjs (NEXT_PUBLIC_ORIGIN) and android/app.env (HOST) — then rebuild the APK."
 fb apps:create web "$NAME Web" --project "$PROJECT" || true
 cat <<MSG
 
