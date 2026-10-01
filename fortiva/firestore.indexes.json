@@ -1,0 +1,11 @@
+{
+  "indexes": [
+    { "collectionGroup": "checks", "queryScope": "COLLECTION_GROUP", "fields": [ { "fieldPath": "active", "order": "ASCENDING" }, { "fieldPath": "nextDueAt", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "ownerUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "ownerUid", "order": "ASCENDING" }, { "fieldPath": "startedAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "trailDeleted", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "startedAt", "order": "ASCENDING" } ] },
+    { "collectionGroup": "shareTokens", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "sosId", "order": "ASCENDING" }, { "fieldPath": "contactId", "order": "ASCENDING" } ] }
+  ],
+  "fieldOverrides": []
+}

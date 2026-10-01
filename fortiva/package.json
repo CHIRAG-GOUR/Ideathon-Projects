@@ -1,0 +1,15 @@
+{
+  "name": "fortiva",
+  "private": true,
+  "description": "Fortiva — Safety Check Network: periodic check-ins with escalation to your Trusted Circle, plus a real SOS",
+  "scripts": {
+    "test": "node --import tsx --test ../safety-core/shared/test/*.test.ts",
+    "build:web": "npm --prefix web run build",
+    "build:functions": "npm --prefix functions run build",
+    "build:apk": "npm run build:web && bash ../safety-core/android/build-app.sh .",
+    "firebase:setup": "bash ../safety-core/tools/firebase-setup.sh fortiva-safecheck \"Fortiva\" fortiva FORTIVA_SMS",
+    "deploy": "npm run build:web && npm run build:functions && npx -y firebase-tools@latest deploy --only hosting,functions:fortiva,firestore:fortiva --project fortiva-safecheck"
+  },
+  "dependencies": { "zod": "^3.25.76" },
+  "devDependencies": { "tsx": "^4.19.0" }
+}

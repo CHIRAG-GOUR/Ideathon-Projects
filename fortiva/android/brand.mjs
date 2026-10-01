@@ -1,0 +1,5 @@
+// Fortiva brand marks (SVG) — rendered to PNGs by safety-core/tools/icons.mjs.
+const mark = (fg, ring) => `<circle cx="32" cy="32" r="15" fill="none" stroke="${ring}" stroke-width="2.5"/><circle cx="32" cy="17" r="5" fill="${fg}"/><circle cx="45" cy="39.5" r="5" fill="${fg}"/><circle cx="19" cy="39.5" r="5" fill="${fg}"/><path d="M26.5 32.5l4 4 7.5-8" stroke="${fg}" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+export const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2DD4BF"/><stop offset="1" stop-color="#2347D9"/></linearGradient></defs><rect width="64" height="64" rx="20" fill="url(#g)"/>${mark('#fff', 'rgba(255,255,255,.55)')}</svg>`;
+export const foreground = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><g transform="translate(14 14) scale(1.25)">${mark('#fff', 'rgba(255,255,255,.6)')}</g></svg>`;
+export const status = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 8 48 48">${mark('#fff', '#fff')}</svg>`;

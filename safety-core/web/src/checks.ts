@@ -1,6 +1,7 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import type { CheckPlan, EmergencyLocation } from '@shared/types';
-import { confirmPlan, startPlan, stopPlan } from '@shared/checks';
+import { checkState, confirmPlan, startPlan, stopPlan } from '@shared/checks';
 import { api } from './api';
 import { currentFix, hasNative, invoke } from './native';
 
@@ -43,3 +44,29 @@ export const checks = {
     return stopPlan(plan);
   },
 };
+
+/** Browser only: a system notification + vibration when a check is due or overdue (the Android app does this natively). */
+export function useCheckPrompt(plan: CheckPlan | null | undefined, brand: string) {
+  const ref = useRef(plan);
+  ref.current = plan;
+  const shown = useRef('');
+  useEffect(() => {
+    if (hasNative()) return;
+    const t = setInterval(() => {
+      const p = ref.current;
+      const s = checkState(p);
+      if ((s !== 'DUE' && s !== 'WARNING') || !p) return;
+      const key = `${s}:${p.nextDueAt}`;
+      if (shown.current === key) return;
+      shown.current = key;
+      navigator.vibrate?.([400, 200, 400]);
+      try {
+        if ('Notification' in window && Notification.permission === 'granted')
+          new Notification(s === 'DUE' ? `${brand}: Are you OK?` : `${brand}: you missed a check-in`, { body: s === 'DUE' ? `Tap to check in (${p.label}).` : 'Check in now, or your contacts will be alerted.', tag: 'check', requireInteraction: true });
+      } catch {
+        /* notifications unavailable */
+      }
+    }, 5000);
+    return () => clearInterval(t);
+  }, [brand]);
+}

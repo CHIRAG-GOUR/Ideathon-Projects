@@ -67,7 +67,9 @@ export async function processChecks(sms: SmsConfig | null) {
       results[c.id] = (await sendSms(sms, c.phone!, body, null)).status;
     }
     await d.ref.set({ escalatedAt: nowIso(), escalatedBy: 'server', updatedAt: nowIso() }, { merge: true });
+    const sent = Object.values(results).filter((s) => s === 'submitted' || s === 'delivered').length;
+    const note = !contacts.length ? 'No contact with SMS enabled — nobody could be texted' : sent ? `Server texted ${sent} of ${contacts.length} contact${contacts.length > 1 ? 's' : ''}` : 'Server SMS is not set up or failed — contacts were NOT texted';
     await log(p.ownerUid, 'missed', { by: 'server' });
-    await log(p.ownerUid, 'escalated', { by: 'server', results });
+    await log(p.ownerUid, 'escalated', { by: 'server', results, note });
   }
 }

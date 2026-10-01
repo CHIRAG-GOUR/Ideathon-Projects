@@ -12,6 +12,7 @@ import { useNav } from '@core/useNav';
 import { useReadiness } from '@core/readiness';
 import { useNativeSetup } from '@core/setup';
 import { useSos, type Trigger } from '@core/useSos';
+import { useCheckPrompt } from '@core/checks';
 import { DemoBar, cx } from '@/ui/kit';
 import { Logo } from '@/ui/art';
 import { Emergency } from '@/screens/Emergency';
@@ -149,6 +150,7 @@ export default function AppRoot() {
     };
   }, []);
   const plan = demo ? demoPlan : hasNative() ? nativePlan ?? cloudPlan : cloudPlan;
+  useCheckPrompt(plan, BRAND);
   const setLocalPlan = (p: CheckPlan | null) => (demo ? setDemoPlan(p) : hasNative() ? setNativePlan(p) : undefined);
 
   // Opened from a notification (e.g. "Are you safe?") → straight to Shield Mode.
