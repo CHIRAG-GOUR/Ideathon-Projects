@@ -1,0 +1,12 @@
+{
+  "name": "smart-lpg-safety-dock",
+  "private": true,
+  "description": "Smart LPG Cylinder Safety Dock — interactive prototype simulator (web + Android). Concept / prototype; all telemetry is simulated.",
+  "scripts": {
+    "test": "npm --prefix shared test",
+    "build:web": "npm --prefix web run build",
+    "build:android": "bash mobile/build.sh",
+    "firebase:setup": "bash tools/firebase-setup.sh",
+    "deploy": "npm run build:web && npx -y firebase-tools@latest deploy --only hosting,firestore"
+  }
+}

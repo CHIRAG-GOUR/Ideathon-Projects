@@ -1,0 +1,26 @@
+{
+  "_note": "Single source of truth for the Smart LPG Dock simulation (web + Android). All values are SIMULATED / CONCEPT values for demonstration — not certified sensor or valve specifications.",
+  "cylinderId": "LPG-2700",
+  "dockId": "DOCK-01",
+  "stepSec": 0.05,
+  "baseline": { "gas": 0.04, "temp": 25.3, "tilt": 0.4, "cookingFlow": 0.45, "cylinderKg": 12.9, "cylinderCapacityKg": 19.0 },
+  "thresholds": {
+    "gas":  { "anomaly": 0.08, "warning": 0.12, "critical": 0.25 },
+    "temp": { "anomaly": 38.0, "warning": 45.0, "critical": 55.0 },
+    "tilt": { "anomaly": 6.0,  "warning": 10.0, "critical": 15.0 },
+    "usage": { "abnormalFlow": 1.2, "abnormalSustainSec": 3.0 }
+  },
+  "dock": { "confirmSec": 1.0, "valveTravelSec": 1.0, "clearHoldSec": 2.0, "clearGas": 0.06 },
+  "leak": { "k": 0.00847, "p": 1.62, "ventTauSec": 3.5 },
+  "script": { "leakAtSec": 8.0, "cookingAtSec": 0.0 },
+  "unprotected": { "dangerGas": 0.5, "incidentGas": 0.83, "reactionSec": 0.7, "incidentSec": 6.0, "tiltLeakDeg": 15.0, "heatLeakTemp": 55.0 },
+  "faults": { "heatTargetC": 62.0, "heatRatePerSec": 2.5, "heatDurationSec": 14.0, "tiltTargetDeg": 18.0, "tiltRatePerSec": 6.0, "usageFlow": 1.6, "coolTauSec": 20.0 },
+  "chef": { "calmSpeed": 1.3, "fleeSpeed": 2.0, "relievedAfterSec": 1.0 },
+  "kitchen": {
+    "stove":   [0.0, 0.0, -1.1],
+    "chefCook": [0.0, 0.0, -0.45],
+    "cylinder": [1.55, 0.0, -1.25],
+    "exhaust": [0.0, 2.4, -1.35],
+    "path": [[-1.4, 0.0, 0.5], [-3.0, 0.0, 1.75], [-3.9, 0.0, 2.05]]
+  }
+}
