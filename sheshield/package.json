@@ -1,0 +1,15 @@
+{
+  "name": "sheshield",
+  "private": true,
+  "description": "She Shield — personal protection: Shield Mode, discreet alert, protection checks, evidence vault, real SOS",
+  "scripts": {
+    "test": "node --import tsx --test ../safety-core/shared/test/*.test.ts",
+    "build:web": "npm --prefix web run build",
+    "build:functions": "npm --prefix functions run build",
+    "build:apk": "npm run build:web && bash ../safety-core/android/build-app.sh .",
+    "firebase:setup": "bash ../safety-core/tools/firebase-setup.sh she-shield-app \"She Shield\" sheshield SHESHIELD_SMS",
+    "deploy": "npm run build:web && npm run build:functions && npx -y firebase-tools@latest deploy --only hosting,functions:sheshield,firestore:sheshield,storage --project she-shield-app"
+  },
+  "dependencies": { "zod": "^3.25.76" },
+  "devDependencies": { "tsx": "^4.19.0" }
+}

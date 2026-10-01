@@ -1,0 +1,46 @@
+    // ---- Safety Core (shared by every app; each app has its own project/database) ----
+    function signedIn() { return request.auth != null; }
+    function me(uid) { return signedIn() && request.auth.uid == uid; }
+    function optStr(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
+
+    function validUser(d) {
+      return d.keys().hasOnly(['name', 'phone', 'email', 'profile', 'settings', 'createdAt'])
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+        && (d.phone == null || (d.phone is string && d.phone.matches('^\\+[1-9][0-9]{6,14}$')))
+        && optStr(d, 'email', 120)
+        && d.profile is map && d.profile.shareMedical is bool
+        && optStr(d.profile, 'bloodGroup', 5) && optStr(d.profile, 'allergies', 300) && optStr(d.profile, 'medicalNotes', 500)
+        && d.settings is map && d.settings.sound is bool && d.settings.vibration is bool
+        && d.settings.retentionDays is int && d.settings.retentionDays >= 1 && d.settings.retentionDays <= 365;
+    }
+
+    function validContact(d) {
+      return d.keys().hasOnly(['name', 'phone', 'email', 'role', 'relationship', 'channels', 'createdAt'])
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+        && (d.phone == null || (d.phone is string && d.phone.matches('^\\+[1-9][0-9]{6,14}$')))
+        && (d.email == null || (d.email is string && d.email.size() <= 120))
+        && (d.phone != null || d.email != null)
+        && d.role in ['primary', 'family', 'friend', 'emergency']
+        && d.relationship is string && d.relationship.size() <= 30
+        && d.channels.keys().hasOnly(['sms', 'whatsapp', 'email', 'live'])
+        && d.channels.sms is bool && d.channels.whatsapp is bool && d.channels.email is bool && d.channels.live is bool;
+    }
+
+    match /users/{uid} {
+      allow read: if me(uid);
+      allow create, update: if me(uid) && validUser(request.resource.data);
+      match /contacts/{cid} {
+        allow read: if me(uid);
+        allow create, update: if me(uid) && validContact(request.resource.data);
+        // Deletion goes through the API so the contact's live link is revoked at the same time.
+      }
+      match /checks/{id} { allow read: if me(uid); }
+      match /checkLog/{id} { allow read: if me(uid); }
+    }
+
+    // An SOS is readable by its owner only. Contacts see it through their token via the API — never directly.
+    match /sosEvents/{id} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      match /{sub}/{doc} { allow read: if signedIn() && get(/databases/$(database)/documents/sosEvents/$(id)).data.ownerUid == request.auth.uid; }
+    }
+    // devices, shareTokens, smsDeliveries: server only.

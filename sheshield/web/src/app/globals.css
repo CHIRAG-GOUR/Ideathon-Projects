@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { background: #FBF9FE; color: #1E1533; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Manrope Variable', system-ui, sans-serif; text-rendering: optimizeLegibility; }
+button, a { -webkit-user-select: none; user-select: none; }
+
+/* Soft protective pattern behind the app */
+.bg-weave { background-image: radial-gradient(circle at 1px 1px, rgba(124,77,219,.08) 1px, transparent 0); background-size: 22px 22px; }
+
+/* Map */
+.leaflet-container { font-family: inherit; background: #F5F1FC; }
+.leaflet-control-attribution { font-size: 9px !important; background: rgba(255,255,255,.7) !important; }
+.sc-me { position: relative; width: 28px; height: 28px; border-radius: 9999px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 22%, transparent); }
+.sc-me > span { width: 16px; height: 16px; border-radius: 9999px; background: var(--c); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(30,21,51,.35); }
+.sc-pulse::after { content: ''; position: absolute; inset: -10px; border-radius: 9999px; border: 3px solid var(--c); animation: sc-ping 1.6s ease-out infinite; }
+.sc-pin { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; font-size: 17px; background: #fff; border: 2px solid #D4C5FE; box-shadow: 0 4px 12px rgba(59,30,119,.18); }
+@keyframes sc-ping { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
