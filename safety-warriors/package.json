@@ -1,0 +1,15 @@
+{
+  "name": "safety-warriors",
+  "private": true,
+  "description": "Safety Warriors — Safety Toolkit and Emergency Playbooks with quick actions and a real SOS",
+  "scripts": {
+    "test": "node --import tsx --test ../safety-core/shared/test/*.test.ts",
+    "build:web": "npm --prefix web run build",
+    "build:functions": "npm --prefix functions run build",
+    "build:apk": "npm run build:web && bash ../safety-core/android/build-app.sh .",
+    "firebase:setup": "bash ../safety-core/tools/firebase-setup.sh safety-warriors-app \"Safety Warriors\" safetywarriors WARRIORS_SMS",
+    "deploy": "npm run build:web && npm run build:functions && npx -y firebase-tools@latest deploy --only hosting,functions:warriors,firestore:safetywarriors --project safety-warriors-app"
+  },
+  "dependencies": { "zod": "^3.25.76" },
+  "devDependencies": { "tsx": "^4.19.0" }
+}

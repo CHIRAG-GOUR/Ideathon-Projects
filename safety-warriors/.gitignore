@@ -1,0 +1,7 @@
+node_modules/
+*.log
+web/public/download/*.apk
+android/build/
+android/keystore/
+functions/.secret.local
+functions/.env.local
