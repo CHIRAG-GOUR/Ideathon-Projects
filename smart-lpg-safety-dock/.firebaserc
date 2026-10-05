@@ -1,1 +1,5 @@
-{ "projects": { "default": "smart-lpg-safety-dock" } }
+{
+  "projects": {
+    "default": "ideathon-projects"
+  }
+}

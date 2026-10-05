@@ -1,0 +1,10 @@
+{
+  "name": "lpg-dock-shared",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --import tsx --test test/*.test.ts",
+    "fixtures": "node --import tsx src/fixtures.ts"
+  },
+  "devDependencies": { "tsx": "^4.19.0", "typescript": "^5.6.3", "@types/node": "^22.10.0" }
+}

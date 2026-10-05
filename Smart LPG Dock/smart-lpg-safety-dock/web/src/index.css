@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { background: #FBF7F0; color: #1F2733; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Manrope Variable', system-ui, sans-serif; overflow-x: hidden; }
+.bg-grid {
+  background-image: linear-gradient(rgba(37,99,176,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,176,.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+:focus-visible { outline: 3px solid #7FA9DD; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Smart LPG Dock</string>
+    <color name="ic_launcher_background">#142F55</color>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:colorPrimary">#1D4F91</item>
+        <item name="android:colorAccent">#2563B0</item>
+        <item name="android:colorControlActivated">#2563B0</item>
+    </style>
+</resources>

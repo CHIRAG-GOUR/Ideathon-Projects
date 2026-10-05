@@ -1,0 +1,8 @@
+node_modules/
+web/dist/
+mobile/build/
+mobile/keystore/
+*.log
+.firebase/
+mobile/.tools/
+mobile/robotest/target/

@@ -4,14 +4,22 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 export default {
-  output: 'export', // static: hosted on Firebase Hosting and bundled inside the Android app (opens offline)
+  output: 'export',
   reactStrictMode: true,
   poweredByHeader: false,
   images: { unoptimized: true },
-  experimental: { externalDir: true }, // ../../safety-core
-  env: { NEXT_PUBLIC_APP_ID: 'fortiva', NEXT_PUBLIC_DATABASE_ID: 'fortiva', NEXT_PUBLIC_ORIGIN: 'https://fortiva-safecheck.web.app' },
+  experimental: { externalDir: true },
+  env: {
+    NEXT_PUBLIC_APP_ID: 'fortiva',
+    NEXT_PUBLIC_DATABASE_ID: 'fortiva',
+    NEXT_PUBLIC_ORIGIN: 'https://fortiva-safecheck.web.app',
+    NEXT_PUBLIC_FIREBASE_API_KEY: 'AIzaSyBrQfqen78vsffdhdz5X6wTt6pChjJw6O0',
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'ideathon-projects.firebaseapp.com',
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'ideathon-projects',
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'ideathon-projects.firebasestorage.app',
+    NEXT_PUBLIC_FIREBASE_APP_ID: '1:174113004916:web:77c2d9f7ffb19d2005a021',
+  },
   webpack(config) {
-    // Shared Safety Core code resolves packages from this app (one copy of each library).
     config.resolve.modules = [path.join(here, 'node_modules'), 'node_modules'];
     return config;
   },

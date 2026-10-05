@@ -1,0 +1,6 @@
+{
+  "indexes": [
+    { "collectionGroup": "simulationSessions", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "ownerUid", "order": "ASCENDING" }, { "fieldPath": "startedAt", "order": "DESCENDING" }] }
+  ],
+  "fieldOverrides": []
+}

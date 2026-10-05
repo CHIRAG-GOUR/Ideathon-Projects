@@ -24,6 +24,17 @@ export function createApi(o: CoreOptions) {
   const sms = (): SmsConfig | null => parseSmsConfig(o.smsSecret());
   const routes: Record<string, Handler> = {
     'GET /health': async () => ({ app: APP.id, time: nowIso() }),
+    'GET /profile': async (req) => {
+      const { uid } = await requireUser(req);
+      const snap = await db().doc(`users/${uid}`).get();
+      return snap.exists ? snap.data() : null;
+    },
+    'POST /profile': async (req) => {
+      const { uid } = await requireUser(req);
+      const body = req.body;
+      await db().doc(`users/${uid}`).set({ ...body, updatedAt: nowIso() }, { merge: true });
+      return { ok: true };
+    },
     'POST /device/register': async (req) => registerDevice((await requireUser(req)).uid, z.object({ label: z.string().max(60) }).parse(req.body).label),
     // Phone (device key) or browser (signed-in user): the same idempotent SOS sync.
     'POST /sos/sync': async (req) => syncSos(await requireOwner(req), sosSyncSchema.parse(req.body), sms()),
