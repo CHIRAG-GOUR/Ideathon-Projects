@@ -1,0 +1,96 @@
+rules_version = '2';
+// Beyond Legacy — dedicated project. Every store belongs to exactly one account (ownerUid); nothing is shared
+// between stores. The rules also validate every field the app writes, keep the sales log and inventory events
+// append-only, and require each recorded sale to reduce stock by exactly the units sold in the same transaction.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function storePath(storeId) { return /databases/$(database)/documents/stores/$(storeId); }
+    function ownsStore(storeId) { return signedIn() && get(storePath(storeId)).data.ownerUid == request.auth.uid; }
+    // For writes that may share a batch with the store's creation (getAfter sees the batch's result).
+    function ownsStoreAfter(storeId) { return signedIn() && getAfter(storePath(storeId)).data.ownerUid == request.auth.uid; }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function intIn(v, lo, hi) { return v is int && v >= lo && v <= hi; }
+    function numIn(v, lo, hi) { return (v is int || v is float) && v >= lo && v <= hi; }
+    function isDate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function only(keys) { return request.resource.data.keys().hasOnly(keys); }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      // The profile may only point at a store this user owns (getAfter sees the store created in the same batch).
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && only(['storeId', 'displayName', 'email', 'createdAt'])
+        && str(request.resource.data.storeId, 64) && str(request.resource.data.displayName, 80)
+        && getAfter(storePath(request.resource.data.storeId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /stores/{storeId} {
+      function validStore() {
+        let d = request.resource.data;
+        return only(['ownerUid', 'name', 'type', 'area', 'managerName', 'openTime', 'closeTime', 'deliveryDays', 'demo', 'createdAt'])
+          && str(d.name, 80) && d.name.size() > 0 && str(d.type, 60) && str(d.area, 80) && str(d.managerName, 60) && d.managerName.size() > 0
+          && d.openTime.matches('^[0-9]{2}:[0-9]{2}$') && d.closeTime.matches('^[0-9]{2}:[0-9]{2}$') && str(d.deliveryDays, 120) && d.demo is bool;
+      }
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && validStore();
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && request.resource.data.ownerUid == resource.data.ownerUid && validStore();
+      allow delete: if false;
+
+      match /settings/{settingsId} {
+        allow read: if ownsStore(storeId);
+        allow write: if ownsStoreAfter(storeId) && settingsId == 'engine'
+          && only(['highRiskDays', 'reorderWindowDays', 'orderCoverageDays', 'slowCoverageDays', 'expiryWatchDays'])
+          && intIn(request.resource.data.highRiskDays, 1, 14) && intIn(request.resource.data.reorderWindowDays, 1, 30)
+          && intIn(request.resource.data.orderCoverageDays, 1, 30) && intIn(request.resource.data.slowCoverageDays, 5, 120)
+          && intIn(request.resource.data.expiryWatchDays, 1, 30);
+      }
+
+      match /products/{productId} {
+        function validProduct() {
+          let d = request.resource.data;
+          return only(['name', 'category', 'stock', 'unitPrice', 'expiryDate', 'safetyStock', 'caseSize', 'supplier', 'notes', 'declaredDailySales', 'salesDaily', 'trackingSince', 'createdAt', 'updatedAt', 'demo'])
+            && str(d.name, 80) && d.name.size() > 0
+            && d.category in ['Beverages', 'Snacks', 'Dairy', 'Bakery', 'Ready-to-Eat', 'Packaged Food', 'Personal Care', 'Household', 'Other']
+            && intIn(d.stock, 0, 100000) && numIn(d.unitPrice, 0, 1000000) && (d.expiryDate == null || isDate(d.expiryDate))
+            && intIn(d.safetyStock, 0, 100000) && intIn(d.caseSize, 1, 1000) && str(d.supplier, 80) && str(d.notes, 500)
+            && numIn(d.declaredDailySales, 0, 10000) && d.salesDaily is map && d.salesDaily.size() <= 60 && isDate(d.trackingSince)
+            && d.createdAt is int && d.updatedAt is int && d.demo is bool;
+        }
+        allow read, delete: if ownsStore(storeId);
+        allow create, update: if ownsStoreAfter(storeId) && validProduct();
+      }
+
+      // Append-only sales log. A sale must reduce the product's stock by exactly its units in the same commit.
+      match /sales/{saleId} {
+        allow read: if ownsStore(storeId);
+        allow create: if ownsStore(storeId) && only(['productId', 'units', 'date', 'at', 'by'])
+          && str(request.resource.data.productId, 64) && intIn(request.resource.data.units, 1, 100000) && isDate(request.resource.data.date)
+          && request.resource.data.at is int && str(request.resource.data.by, 120)
+          && getAfter(/databases/$(database)/documents/stores/$(storeId)/products/$(request.resource.data.productId)).data.stock
+             == get(/databases/$(database)/documents/stores/$(storeId)/products/$(request.resource.data.productId)).data.stock - request.resource.data.units;
+        allow update, delete: if false;
+      }
+
+      // Append-only audit trail of stock movements, edits and manager actions.
+      match /inventoryEvents/{eventId} {
+        allow read: if ownsStore(storeId);
+        allow create: if ownsStore(storeId) && only(['productId', 'productName', 'type', 'delta', 'stockAfter', 'note', 'at', 'by'])
+          && request.resource.data.type in ['sale', 'receive', 'count', 'wastage', 'created', 'edited', 'action']
+          && request.resource.data.delta is int && request.resource.data.stockAfter is int && str(request.resource.data.note, 200)
+          && str(request.resource.data.productName, 80) && request.resource.data.at is int && str(request.resource.data.by, 120);
+        allow update, delete: if false;
+      }
+
+      // The manager's response to a product's current recommendation.
+      match /recommendations/{productId} {
+        allow read, delete: if ownsStore(storeId);
+        allow create, update: if ownsStore(storeId) && only(['productId', 'action', 'status', 'quantity', 'at', 'by', 'stockAtAction', 'expiryAtAction', 'note'])
+          && request.resource.data.productId == productId
+          && request.resource.data.action in ['RESTOCK', 'SELL_SOON', 'HOLD', 'REMOVE']
+          && request.resource.data.status in ['ordered', 'prioritized', 'acknowledged', 'removed']
+          && (request.resource.data.quantity == null || intIn(request.resource.data.quantity, 1, 100000))
+          && request.resource.data.at is int && intIn(request.resource.data.stockAtAction, 0, 100000) && str(request.resource.data.note, 120);
+      }
+    }
+  }
+}

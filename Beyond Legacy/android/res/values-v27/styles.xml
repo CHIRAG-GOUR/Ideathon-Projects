@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 8.1+: cream navigation bar with dark buttons, matching the app's page background. -->
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:statusBarColor">@color/green_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/cream</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorPrimary">#0E6B47</item>
+        <item name="android:colorPrimaryDark">@color/green_dark</item>
+        <item name="android:colorAccent">#F5B82E</item>
+    </style>
+</resources>

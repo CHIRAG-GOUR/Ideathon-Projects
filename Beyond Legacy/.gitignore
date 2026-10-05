@@ -1,0 +1,10 @@
+node_modules/
+web/dist/
+android/build/
+android/keystore/
+android/.tools/
+*.log
+.firebase/
+.env
+.env.*
+!.env.example

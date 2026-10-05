@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Beyond Legacy</string>
+    <string name="share_title">Share inventory CSV</string>
+    <string name="no_app">No app on this phone can open that link.</string>
+    <color name="ic_launcher_background">#0E6B47</color>
+    <color name="green_dark">#0A3D2C</color>
+    <color name="cream">#FBF5E9</color>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:statusBarColor">@color/green_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/green_dark</item>
+        <item name="android:colorPrimary">#0E6B47</item>
+        <item name="android:colorPrimaryDark">@color/green_dark</item>
+        <item name="android:colorAccent">#F5B82E</item>
+    </style>
+</resources>
