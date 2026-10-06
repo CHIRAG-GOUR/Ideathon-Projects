@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Beyond Legacy</string>
+    <string name="app_name">SmartShelf AI</string>
     <string name="share_title">Share inventory CSV</string>
     <string name="no_app">No app on this phone can open that link.</string>
     <color name="ic_launcher_background">#0E6B47</color>

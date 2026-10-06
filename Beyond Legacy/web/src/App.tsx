@@ -2,9 +2,10 @@ import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { StorefrontMini } from './art/scenes';
-import { SessionProvider, useWorkspace } from './state/session';
+import { SessionProvider, useSession, useWorkspace } from './state/session';
+import { AuthScreen, StoreSetup } from './screens/Auth';
 import Overview from './screens/Overview';
-import { IconCart, IconInsights, IconInventory, IconMore, IconNextMove, IconOverview, IconPlus, IconSearch, IconSettings, IconStore, Logo } from './ui/icons';
+import { IconCart, IconInsights, IconInventory, IconMore, IconNextMove, IconOverview, IconPlay, IconPlus, IconSearch, IconSettings, IconStore, Logo } from './ui/icons';
 import { Button, cx, Sheet, ToastProvider } from './ui/kit';
 import { SheetsProvider, useSheets } from './ui/sheets';
 import { Notifications, ProfileMenu, SearchBox, SyncPill } from './ui/topbar';
@@ -15,14 +16,15 @@ const ProductDetail = lazy(() => import('./screens/ProductDetail'));
 const Insights = lazy(() => import('./screens/Insights'));
 const StorePage = lazy(() => import('./screens/StorePage'));
 const Settings = lazy(() => import('./screens/Settings'));
+const Play = lazy(() => import('./play/Play'));
 
 const NAV = [
-  { to: '/', label: 'Overview', icon: IconOverview, end: true },
-  { to: '/inventory', label: 'Inventory', icon: IconInventory },
+  { to: '/', label: 'Overview', icon: IconOverview, IconPlay, end: true },
   { to: '/next-moves', label: 'Next Moves', icon: IconNextMove },
+  { to: '/inventory', label: 'Inventory', icon: IconInventory },
   { to: '/insights', label: 'Insights', icon: IconInsights },
-  { to: '/store', label: 'Store', icon: IconStore },
-  { to: '/settings', label: 'Settings', icon: IconSettings },
+  { to: '/store', label: 'Store', icon: IconStore, secondary: true },
+  { to: '/settings', label: 'Settings', icon: IconSettings, secondary: true },
 ];
 
 export default function App() {
@@ -31,13 +33,45 @@ export default function App() {
       <ToastProvider>
         <BrowserRouter>
           <SessionProvider>
-            <SheetsProvider>
-              <Shell />
-            </SheetsProvider>
+            <Gate />
           </SessionProvider>
         </BrowserRouter>
       </ToastProvider>
     </MotionConfig>
+  );
+}
+
+function Gate() {
+  const s = useSession();
+  if (s.phase === 'loading') return <Splash />;
+  if (s.phase === 'error') return <Splash error={s.error ?? 'Could not load your store.'} />;
+  if (s.phase === 'signed-out') return <AuthScreen />;
+  if (s.phase === 'needs-store') return <StoreSetup />;
+  return (
+    <SheetsProvider>
+      <Shell />
+    </SheetsProvider>
+  );
+}
+
+function Splash({ error }: { error?: string }) {
+  const s = useSession();
+  return (
+    <div className="grid min-h-dvh place-items-center bg-green-dark px-6 text-white">
+      <div className="flex max-w-sm flex-col items-center text-center">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}><Logo size={64} /></motion.div>
+        <p className="mt-4 font-display text-2xl font-extrabold">SmartShelf AI</p>
+        {error ? (
+          <>
+            <p role="alert" className="mt-2 text-[14px] text-white/80">{error}</p>
+            <div className="mt-4 flex gap-2">
+              <Button tone="accent" onClick={() => location.reload()}>Try again</Button>
+              {s.user && <Button tone="light" onClick={() => s.signOut()}>Sign out</Button>}
+            </div>
+          </>
+        ) : <p className="mt-2 text-[14px] text-white/70" aria-live="polite">Opening your store…</p>}
+      </div>
+    </div>
   );
 }
 
@@ -51,8 +85,8 @@ function Sidebar() {
       <div className="flex items-center gap-3 px-5 pb-3 pt-6">
         <Logo size={40} onDark />
         <div>
-          <p className="font-display text-[19px] font-extrabold leading-tight tracking-tight">Beyond Legacy</p>
-          <p className="text-[11px] font-semibold text-white/60">Know what to do next</p>
+          <p className="font-display text-[19px] font-extrabold leading-tight tracking-tight">SmartShelf <span className="text-yellow">AI</span></p>
+          <p className="text-[11px] font-semibold text-white/60">by Beyond Legacy</p>
         </div>
       </div>
       <div className="mx-4 mt-2 rounded-2xl bg-white/[0.06] p-3 ring-1 ring-inset ring-white/10">
@@ -61,8 +95,10 @@ function Sidebar() {
         <p className="truncate text-[11.5px] text-white/60">{workspace.store.area || workspace.store.type}{workspace.store.demo ? ' · Demo data' : ''}</p>
       </div>
       <nav className="mt-4 space-y-1 px-3" aria-label="Main">
-        {NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cx('relative flex h-11 items-center gap-3 rounded-xl px-3 text-[14.5px] font-bold transition-colors', isActive ? 'text-ink' : 'text-white/80 hover:bg-white/[0.07] hover:text-white')}>
+        {NAV.map((n, k) => (
+          <div key={n.to}>
+          {k === 4 && <p className="px-3 pb-1 pt-4 text-[10.5px] font-extrabold uppercase tracking-[0.16em] text-white/40">Your store</p>}
+          <NavLink to={n.to} end={n.end} className={({ isActive }) => cx('relative flex items-center gap-3 rounded-xl px-3 font-bold transition-colors', n.secondary ? 'h-9 text-[13.5px]' : 'h-11 text-[14.5px]', isActive ? 'text-ink' : n.secondary ? 'text-white/60 hover:bg-white/[0.07] hover:text-white' : 'text-white/85 hover:bg-white/[0.07] hover:text-white')}>
             {({ isActive }) => (
               <>
                 {isActive && <motion.span layoutId="side-active" className="absolute inset-0 rounded-xl bg-yellow" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
@@ -72,6 +108,7 @@ function Sidebar() {
               </>
             )}
           </NavLink>
+          </div>
         ))}
       </nav>
       <div className="mt-4 space-y-2 px-4">
@@ -124,7 +161,7 @@ function Shell() {
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-green-dark px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] text-white lg:hidden">
         <Logo size={32} onDark />
         <div className="min-w-0 flex-1">
-          <p className="font-display text-[16px] font-extrabold leading-tight">Beyond Legacy</p>
+          <p className="font-display text-[16px] font-extrabold leading-tight">SmartShelf <span className="text-yellow">AI</span></p>
           <p className="truncate text-[11px] text-white/65">{workspace.store.name}</p>
         </div>
         <button onClick={() => setSearch(true)} aria-label="Search products" className="grid h-11 w-11 place-items-center rounded-2xl hover:bg-white/10"><IconSearch size={20} /></button>
@@ -135,7 +172,7 @@ function Shell() {
         <div className="mx-auto max-w-[1280px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
           {syncError && (
             <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-red-soft px-4 py-3 text-[14px] font-semibold text-red-ink">
-              <span className="flex-1">Live sync: {syncError}</span>
+              <span className="flex-1">Live sync stopped: {syncError} The numbers on screen may be out of date.</span>
               <Button size="sm" onClick={() => location.reload()}>Reload</Button>
             </div>
           )}
@@ -152,6 +189,7 @@ function Shell() {
                   <Route path="/insights/:tab" element={<Insights />} />
                   <Route path="/store" element={<StorePage />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/play" element={<Play />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
@@ -160,9 +198,9 @@ function Shell() {
         </div>
       </main>
 
-      {/* mobile bottom navigation */}
-      <nav aria-label="Main" className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 grid grid-cols-5 rounded-[22px] bg-green-dark p-1.5 shadow-lift lg:hidden">
-        {[NAV[0], NAV[1], NAV[2], NAV[3]].map((n) => (
+      {/* mobile bottom navigation: a floating dark-green rail with a golden active tab */}
+      <nav aria-label="Main" className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 grid grid-cols-6 rounded-[22px] bg-green-dark p-1.5 shadow-lift lg:hidden">
+        {[NAV[0], NAV[1], NAV[2], NAV[3], NAV[4]].map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cx('relative flex h-[56px] flex-col items-center justify-center gap-0.5 rounded-2xl text-[10.5px] font-extrabold', isActive ? 'text-ink' : 'text-white/75')}>
             {({ isActive }) => (
               <>
@@ -184,7 +222,7 @@ function Shell() {
         <div className="grid gap-2">
           <Button tone="accent" size="lg" onClick={() => (setMore(false), sheets.addProduct())}><IconPlus size={18} />Add product</Button>
           <Button size="lg" onClick={() => (setMore(false), sheets.recordSale())}><IconCart size={18} />Record sale</Button>
-          {[NAV[4], NAV[5]].map((n) => (
+          {[NAV[5], NAV[6]].map((n) => (
             <NavLink key={n.to} to={n.to} onClick={() => setMore(false)} className={({ isActive }) => cx('flex h-14 items-center gap-3 rounded-2xl px-4 text-[15px] font-bold', isActive ? 'bg-green-dark text-yellow' : 'bg-surface text-ink ring-1 ring-line')}>
               <n.icon size={21} />{n.label}
             </NavLink>

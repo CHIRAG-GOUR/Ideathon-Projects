@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProductArt } from '../art/ProductArt';
 import { useWorkspace } from '../state/session';
 import { isCritical } from './decision';
-import { IconBell, IconSearch, IconSettings, IconStore, IconSync } from './icons';
+import { IconBell, IconSearch, IconSettings, IconSignOut, IconSync } from './icons';
 import { ActionBadge, cx } from './kit';
 
 function useOutside(open: boolean, close: () => void) {
@@ -117,12 +117,12 @@ export function SyncPill({ dark }: { dark?: boolean }) {
     addEventListener('offline', off);
     return () => (removeEventListener('online', on), removeEventListener('offline', off));
   }, []);
-  const label = mode === 'local' ? 'Active · Direct Mode' : online ? 'Synced' : 'Offline — saving locally';
+  const label = mode === 'local' ? 'On this device' : online ? 'Synced' : 'Offline — saving locally';
   return (
     <span className={cx('inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold', dark ? 'bg-white/10 text-white/85' : 'bg-surface text-ink-2 ring-1 ring-line')} title={updatedAt ? `Last change ${new Date(updatedAt).toLocaleTimeString()}` : undefined}>
-      <span className={cx('h-2 w-2 rounded-full', mode === 'local' ? 'bg-green-mid' : online ? 'bg-green-mid' : 'bg-orange')} />
+      <span className={cx('h-2 w-2 rounded-full', mode === 'local' ? 'bg-yellow' : online ? 'bg-green-mid' : 'bg-orange')} />
       <IconSync size={14} />
-      {label}
+      {label}{updatedAt && mode === 'cloud' && online ? ` ${new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
     </span>
   );
 }
@@ -132,7 +132,7 @@ export function ProfileMenu() {
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useOutside(open, () => setOpen(false));
-  const name = s.workspace.store.managerName || 'Store Manager';
+  const name = s.user?.name || s.workspace.store.managerName;
   const initials = name.split(/\s+/).map((x) => x[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div ref={ref} className="relative">
@@ -140,9 +140,9 @@ export function ProfileMenu() {
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 top-[calc(100%+8px)] z-50 w-60 rounded-2xl bg-surface p-1.5 shadow-lift ring-1 ring-line">
-            <div className="px-3 py-2"><p className="truncate text-[14px] font-extrabold text-ink">{name}</p><p className="truncate text-[12px] text-ink-muted">{s.workspace.store.name}</p></div>
+            <div className="px-3 py-2"><p className="truncate text-[14px] font-extrabold text-ink">{name}</p><p className="truncate text-[12px] text-ink-muted">{s.user?.email ?? 'On this device'}</p></div>
             <button onClick={() => (nav('/settings'), setOpen(false))} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-ink-2 hover:bg-cream"><IconSettings size={18} />Settings</button>
-            <button onClick={() => (nav('/store'), setOpen(false))} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-ink-2 hover:bg-cream"><IconStore size={18} />Store Profile</button>
+            {s.mode === 'cloud' && <button onClick={() => s.signOut()} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-red-ink hover:bg-red-soft"><IconSignOut size={18} />Sign out</button>}
           </motion.div>
         )}
       </AnimatePresence>

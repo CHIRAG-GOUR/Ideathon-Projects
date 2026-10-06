@@ -1,4 +1,5 @@
-// On-device implementation of the Repository (browser storage)
+// On-device implementation of the Repository (browser storage), used only when no Firebase project is configured
+// — the app labels this mode "On this device". Same validation and semantics as the Firestore implementation.
 import { today } from '../engine/dates';
 import { demoProducts } from '../engine/demo';
 import { DEFAULT_SETTINGS, type Product } from '../engine/types';
@@ -11,44 +12,27 @@ function defaultWorkspace(): Workspace {
   return {
     store: {
       id: 'local-store',
-      name: 'Central Mart · Mansarovar',
-      type: 'Convenience & Daily Needs',
-      area: 'Mansarovar, Jaipur',
+      name: '7-Express Mart',
+      type: 'Convenience Store',
+      area: 'Bengaluru Central',
       managerName: 'Store Manager',
       openTime: '07:00',
       closeTime: '23:00',
-      deliveryDays: 'Mon, Wed, Fri',
+      deliveryDays: 'Daily (dairy, bakery) · Mon/Thu (packaged)',
       demo: true,
       createdAt: Date.now(),
     },
     settings: { ...DEFAULT_SETTINGS },
-    products: demoProducts(today()).map((p) => ({ ...p, id: id() })),
+    products: demoProducts(today()).map((p, i) => ({ ...p, id: `demo-p-${i + 1}` })),
     actions: {},
-    events: [
-      {
-        id: id(),
-        productId: 'init',
-        productName: 'Store Initialized',
-        type: 'created',
-        delta: 0,
-        stockAfter: 0,
-        note: 'Live inventory workspace active',
-        at: Date.now(),
-        by: 'Store Manager',
-      },
-    ],
+    events: [],
   };
 }
 
 function read(): Workspace {
   try {
     const s = localStorage.getItem(KEY);
-    if (s) {
-      const parsed = JSON.parse(s);
-      if (parsed && parsed.store && Array.isArray(parsed.products) && parsed.products.length > 0) {
-        return parsed;
-      }
-    }
+    if (s) return JSON.parse(s) as Workspace;
     const def = defaultWorkspace();
     localStorage.setItem(KEY, JSON.stringify(def));
     return def;
@@ -59,21 +43,22 @@ function read(): Workspace {
 
 export function localRepository(): Repository {
   const listeners = new Set<(w: Workspace | null) => void>();
-  let state = read();
+  let state: Workspace | null = read();
   const write = (w: Workspace | null) => {
-    state = w || defaultWorkspace();
+    state = w;
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      if (w) localStorage.setItem(KEY, JSON.stringify(w));
+      else localStorage.removeItem(KEY);
     } catch {
       throw new ValidationError('This device’s storage is full or blocked, so the change could not be saved.');
     }
-    listeners.forEach((l) => l(structuredClone(state)));
+    listeners.forEach((l) => l(w ? structuredClone(w) : null));
   };
   const need = () => {
-    if (!state) state = read();
+    if (!state) state = defaultWorkspace();
     return structuredClone(state);
   };
-  const by = () => state?.store.managerName || 'Store Manager';
+  const by = () => state?.store.managerName || 'Manager';
   const event = (w: Workspace, e: Omit<InventoryEvent, 'id' | 'at' | 'by'>) => {
     w.events = [{ ...e, id: id(), at: Date.now(), by: by() }, ...w.events].slice(0, 200);
   };
@@ -87,11 +72,11 @@ export function localRepository(): Repository {
     mode: 'local',
     subscribe(onData) {
       listeners.add(onData);
-      queueMicrotask(() => onData(state ? structuredClone(state) : defaultWorkspace()));
+      queueMicrotask(() => onData(state ? structuredClone(state) : null));
       const onStorage = (e: StorageEvent) => {
         if (e.key === KEY) {
           state = read();
-          onData(state ? structuredClone(state) : defaultWorkspace());
+          onData(state ? structuredClone(state) : null);
         }
       };
       addEventListener('storage', onStorage);
@@ -101,75 +86,128 @@ export function localRepository(): Repository {
       };
     },
     async createStore(input, opts) {
+      const now = Date.now();
+      const products: Product[] = opts?.demo ? demoProducts(today(), now).map((p, i) => ({ ...p, id: `p-${i + 1}-${id()}` })) : [];
       write({
-        store: { id: 'local-store', name: input.name.trim(), type: input.type, area: input.area.trim(), managerName: input.managerName.trim(), openTime: '07:00', closeTime: '23:00', deliveryDays: '', demo: false, createdAt: Date.now() },
-        settings: { ...DEFAULT_SETTINGS }, products: [], actions: {}, events: [],
+        store: {
+          id: id(),
+          name: input.name.trim(),
+          type: input.type,
+          area: input.area.trim(),
+          managerName: input.managerName.trim(),
+          openTime: '07:00',
+          closeTime: '23:00',
+          deliveryDays: 'Daily (dairy, bakery) · Mon/Thu (packaged)',
+          demo: Boolean(opts?.demo),
+          createdAt: now,
+        },
+        settings: { ...DEFAULT_SETTINGS },
+        products,
+        actions: {},
+        events: [
+          {
+            id: id(),
+            productId: 'store',
+            productName: input.name.trim(),
+            type: 'created',
+            delta: 0,
+            stockAfter: 0,
+            note: opts?.demo ? 'Store created with demo inventory' : 'Store created',
+            at: now,
+            by: input.managerName.trim(),
+          },
+        ],
       });
-      if (opts?.demo) await this.loadDemo();
     },
     async updateStore(patch) {
       const w = need();
-      w.store = { ...w.store, ...patch, id: w.store.id };
+      w.store = { ...w.store, ...patch };
       write(w);
     },
     async updateSettings(s) {
       const w = need();
-      w.settings = s;
+      w.settings = { ...s };
       write(w);
     },
     async addProduct(input) {
-      const v = validateProduct(input);
       const w = need();
+      const clean = validateProduct(input);
+      const pid = id();
       const now = Date.now();
-      const p: Product = { ...v, id: id(), salesDaily: {}, trackingSince: today(), createdAt: now, updatedAt: now, demo: false };
-      w.products.push(p);
-      event(w, { productId: p.id, productName: p.name, type: 'created', delta: p.stock, stockAfter: p.stock, note: 'Product added' });
+      const p: Product = {
+        id: pid,
+        ...clean,
+        salesDaily: {},
+        trackingSince: today(),
+        createdAt: now,
+        updatedAt: now,
+      };
+      w.products = [...w.products, p];
+      event(w, { productId: pid, productName: p.name, type: 'created', delta: p.stock, stockAfter: p.stock, note: 'Added to inventory' });
       write(w);
-      return p.id;
+      return pid;
     },
     async updateProduct(pid, input) {
-      const v = validateProduct(input);
       const w = need();
-      const p = product(w, pid);
-      const before = p.stock;
-      Object.assign(p, v, { updatedAt: Date.now() });
-      event(w, before !== v.stock
-        ? { productId: pid, productName: v.name, type: 'count', delta: v.stock - before, stockAfter: v.stock, note: 'Stock updated in product details' }
-        : { productId: pid, productName: v.name, type: 'edited', delta: 0, stockAfter: v.stock, note: 'Product details edited' });
+      const clean = validateProduct(input);
+      const prev = product(w, pid);
+      const delta = clean.stock - prev.stock;
+      const now = Date.now();
+      const updated: Product = { ...prev, ...clean, updatedAt: now };
+      w.products = w.products.map((x) => (x.id === pid ? updated : x));
+      if (delta !== 0) {
+        event(w, { productId: pid, productName: updated.name, type: 'edited', delta, stockAfter: updated.stock, note: clean.notes || 'Edited stock' });
+      }
       write(w);
     },
     async deleteProduct(pid) {
       const w = need();
-      w.products = w.products.filter((p) => p.id !== pid);
+      const p = product(w, pid);
+      w.products = w.products.filter((x) => x.id !== pid);
       delete w.actions[pid];
+      event(w, { productId: pid, productName: p.name, type: 'edited', delta: -p.stock, stockAfter: 0, note: 'Removed from inventory' });
       write(w);
     },
     async recordSale(pid, units, date) {
-      if (!Number.isInteger(units) || units <= 0) throw new ValidationError('Enter how many units were sold (a whole number above 0).');
       const w = need();
       const p = product(w, pid);
-      if (units > p.stock) throw new ValidationError(`Only ${p.stock} units are recorded in stock. Update the stock count first if this is wrong.`);
-      p.stock -= units;
-      p.salesDaily = pruneSales({ ...p.salesDaily, [date]: (p.salesDaily[date] ?? 0) + units });
-      p.updatedAt = Date.now();
-      event(w, { productId: pid, productName: p.name, type: 'sale', delta: -units, stockAfter: p.stock, note: `Sale recorded for ${date}` });
+      if (units <= 0) throw new ValidationError('Enter 1 or more units.');
+      const salesDaily = pruneSales({ ...p.salesDaily, [date]: (p.salesDaily[date] ?? 0) + units }, date);
+      const nextStock = Math.max(0, p.stock - units);
+      w.products = w.products.map((x) => (x.id === pid ? { ...x, stock: nextStock, salesDaily, updatedAt: Date.now() } : x));
+      event(w, { productId: pid, productName: p.name, type: 'sale', delta: -units, stockAfter: nextStock, note: `${units} sold on ${date}` });
       write(w);
     },
     async adjustStock(pid, kind, value, note, expiryDate) {
       const w = need();
       const p = product(w, pid);
-      const next = stockAfter(kind, p.stock, value);
-      const delta = next - p.stock;
-      p.stock = next;
-      if (expiryDate !== undefined) p.expiryDate = expiryDate;
-      p.updatedAt = Date.now();
-      event(w, { productId: pid, productName: p.name, type: kind, delta, stockAfter: next, note: note || { receive: 'Delivery received', count: 'Stock count', wastage: 'Wastage recorded' }[kind] });
+      const nextStock = stockAfter(kind, p.stock, value);
+      const delta = nextStock - p.stock;
+      w.products = w.products.map((x) =>
+        x.id === pid
+          ? {
+              ...x,
+              stock: nextStock,
+              expiryDate: expiryDate !== undefined ? expiryDate : x.expiryDate,
+              updatedAt: Date.now(),
+            }
+          : x,
+      );
+      event(w, { productId: pid, productName: p.name, type: kind, delta, stockAfter: nextStock, note: note || `Stock ${kind}` });
       write(w);
     },
     async setAction(r) {
       const w = need();
-      w.actions[r.productId] = r;
-      event(w, { productId: r.productId, productName: product(w, r.productId).name, type: 'action', delta: 0, stockAfter: r.stockAtAction, note: `${r.status[0].toUpperCase()}${r.status.slice(1)}${r.quantity ? ` · ${r.quantity} units` : ''}${r.note ? ` · ${r.note}` : ''}` });
+      product(w, r.productId); // verify exists
+      w.actions = { ...w.actions, [r.productId]: { ...r } };
+      event(w, {
+        productId: r.productId,
+        productName: product(w, r.productId).name,
+        type: 'action',
+        delta: 0,
+        stockAfter: product(w, r.productId).stock,
+        note: `Action ${r.action} (${r.status}): ${r.note || 'no note'}`,
+      });
       write(w);
     },
     async clearAction(pid) {
@@ -179,26 +217,29 @@ export function localRepository(): Repository {
     },
     async loadDemo() {
       const w = need();
-      const keep = w.products.filter((p) => !p.demo);
-      w.products = [...keep, ...demoProducts(today()).map((p) => ({ ...p, id: id() }))];
-      w.actions = Object.fromEntries(Object.entries(w.actions).filter(([k]) => keep.some((p) => p.id === k)));
+      const now = Date.now();
+      const demoList = demoProducts(today(), now).map((p, i) => ({ ...p, id: `demo-${i + 1}-${id()}` }));
+      w.products = demoList;
+      w.actions = {};
       w.store.demo = true;
+      event(w, { productId: 'store', productName: w.store.name, type: 'created', delta: 0, stockAfter: 0, note: 'Reset with 47 demo products' });
       write(w);
     },
     async clearDemo() {
       const w = need();
       w.products = w.products.filter((p) => !p.demo);
-      w.actions = Object.fromEntries(Object.entries(w.actions).filter(([k]) => w.products.some((p) => p.id === k)));
+      w.actions = Object.fromEntries(Object.entries(w.actions).filter(([pid]) => w.products.some((p) => p.id === pid)));
       w.store.demo = false;
       write(w);
     },
   };
 }
 
-export function resetLocalWorkspace() {
+export function resetLocalWorkspace(): void {
   try {
-    localStorage.removeItem(KEY);
+    const def = defaultWorkspace();
+    localStorage.setItem(KEY, JSON.stringify(def));
   } catch {
-    /* nothing stored */
+    // ignore
   }
 }

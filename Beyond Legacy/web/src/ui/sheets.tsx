@@ -262,9 +262,9 @@ function ActSheet({ a, onClose }: { a: Analysis; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const copy = {
-    RESTOCK: { title: 'Mark ordered', body: 'Records that you placed this order with your supplier. Beyond Legacy does not contact suppliers. The move stays handled until the delivery is received.', button: 'Mark ordered', done: 'Ordered', status: 'ordered' as const },
+    RESTOCK: { title: 'Mark ordered', body: 'Records that you placed this order with your supplier. SmartShelf does not contact suppliers. The move stays handled until the delivery is received.', button: 'Mark ordered', done: 'Ordered', status: 'ordered' as const },
     SELL_SOON: { title: 'Mark priority', body: 'Adds this product to today’s priority-selling list — for example front-of-counter placement. The move stays handled until a new batch arrives.', button: 'Mark priority', done: 'Prioritised', status: 'prioritized' as const },
-    HOLD: { title: 'Acknowledge', body: 'Confirms you will not reorder for now. Beyond Legacy will raise it again if the situation changes.', button: 'Acknowledge', done: 'Acknowledged', status: 'acknowledged' as const },
+    HOLD: { title: 'Acknowledge', body: 'Confirms you will not reorder for now. SmartShelf will raise it again if the situation changes.', button: 'Acknowledge', done: 'Acknowledged', status: 'acknowledged' as const },
     REMOVE: { title: 'Mark removed', body: 'Confirms the expired stock is off the shelf.', button: 'Mark removed', done: 'Removed', status: 'removed' as const },
   }[r.action];
   async function save() {

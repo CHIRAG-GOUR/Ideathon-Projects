@@ -1,22 +1,25 @@
-// App session: direct workspace access with full offline & instant capabilities.
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+// App session: which backend is in use, who is signed in, the live workspace and its analysis.
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut as fbSignOut, updateProfile, type User } from 'firebase/auth';
 import { analyseStore, type StoreAnalysis } from '../engine/analyze';
 import { today } from '../engine/dates';
+import { cloudRepository } from '../data/cloud';
+import { firebase, type FirebaseHandles } from '../data/firebase';
 import { localRepository } from '../data/local';
-import { type Repository, type Workspace } from '../data/repo';
+import { friendlyError, type Repository, type Workspace } from '../data/repo';
 
 export type Phase = 'loading' | 'signed-out' | 'needs-store' | 'ready' | 'error';
 
 interface Session {
   phase: Phase;
-  mode: 'cloud' | 'local';
+  mode: 'cloud' | 'local' | null;
   projectId: string | null;
   user: { uid: string; email: string; name: string } | null;
-  repo: Repository;
-  workspace: Workspace;
-  analysis: StoreAnalysis;
+  repo: Repository | null;
+  workspace: Workspace | null;
+  analysis: StoreAnalysis | null;
   todayStr: string;
-  updatedAt: number | null;
+  updatedAt: number | null; // when the workspace data last changed
   error: string | null;
   signIn(email: string, password: string): Promise<void>;
   signUp(name: string, email: string, password: string): Promise<void>;
@@ -33,27 +36,49 @@ export function useSession(): Session {
   return s;
 }
 
+/** The workspace inside the app shell (only rendered once phase === 'ready'). */
 export function useWorkspace() {
   const s = useSession();
+  if (!s.workspace || !s.analysis || !s.repo) throw new Error('Workspace not ready');
   return { ...s, workspace: s.workspace, analysis: s.analysis, repo: s.repo };
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const repo = useMemo<Repository>(() => localRepository(), []);
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [fb, setFb] = useState<FirebaseHandles | null | undefined>(undefined);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [workspace, setWorkspace] = useState<Workspace | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [todayStr, setToday] = useState(today());
-  const [updatedAt, setUpdatedAt] = useState<number | null>(Date.now());
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const fbRef = useRef<FirebaseHandles | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setToday(today()), 60_000);
+    firebase().then((h) => {
+      fbRef.current = h;
+      setFb(h);
+    }, () => setFb(null));
+    const t = setInterval(() => setToday(today()), 60_000); // the date rolls over at midnight while the app is open
     return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
+    if (!fb) return;
+    return onAuthStateChanged(fb.auth, (u) => setUser(u), (e) => setError(friendlyError(e)));
+  }, [fb]);
+
+  const repo = useMemo<Repository | null>(() => {
+    if (fb === undefined) return null;
+    if (fb === null || !user) return localRepository();
+    return cloudRepository(fb.db, { uid: user.uid, email: user.email ?? '', displayName: user.displayName ?? '' });
+  }, [fb, user]);
+
+  useEffect(() => {
+    setWorkspace(undefined);
+    setError(null);
+    if (!repo) return;
     return repo.subscribe(
       (w) => {
-        if (w) setWorkspace(w);
+        setWorkspace(w);
         setUpdatedAt(Date.now());
       },
       (m) => setError(m),
@@ -62,30 +87,39 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const analysis = useMemo(() => (workspace ? analyseStore(workspace.products, workspace.settings, todayStr, workspace.actions) : null), [workspace, todayStr]);
 
-  if (!workspace || !analysis) {
-    return null;
-  }
+  const phase: Phase =
+    error && !workspace ? 'error'
+      : fb === undefined ? 'loading'
+      : workspace === undefined ? 'loading'
+      : workspace === null ? 'needs-store'
+      : 'ready';
+
+  const need = useCallback(() => {
+    if (!fbRef.current) throw new Error('Sign-in is not available: no Firebase project is configured for this build.');
+    return fbRef.current;
+  }, []);
 
   const value: Session = {
-    phase: 'ready',
-    mode: 'local',
-    projectId: 'beyond-legacy-app',
-    user: { uid: 'manager-1', email: 'store@beyondlegacy.app', name: workspace.store.managerName || 'Store Manager' },
-    repo,
-    workspace,
-    analysis,
-    todayStr,
-    updatedAt,
-    error,
-    async signIn() {},
-    async signUp() {},
-    async signInWithGoogle() {},
-    async resetPassword() {},
+    phase, mode: fb === undefined ? null : fb ? 'cloud' : 'local', projectId: fb?.projectId ?? null,
+    user: user ? { uid: user.uid, email: user.email ?? '', name: user.displayName ?? '' } : null,
+    repo, workspace: workspace ?? null, analysis, todayStr, updatedAt, error,
+    async signIn(email, password) {
+      await signInWithEmailAndPassword(need().auth, email.trim(), password);
+    },
+    async signUp(name, email, password) {
+      const c = await createUserWithEmailAndPassword(need().auth, email.trim(), password);
+      if (name.trim()) await updateProfile(c.user, { displayName: name.trim() });
+      setUser(need().auth.currentUser);
+    },
+    async signInWithGoogle() {
+      await signInWithPopup(need().auth, new GoogleAuthProvider());
+    },
+    async resetPassword(email) {
+      await sendPasswordResetEmail(need().auth, email.trim());
+    },
     async signOut() {
-      localStorage.clear();
-      location.reload();
+      if (fbRef.current) await fbSignOut(fbRef.current.auth);
     },
   };
-
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

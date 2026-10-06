@@ -17,6 +17,7 @@ const Tone = ({ d }: { d: string }) => <path d={d} fill="currentColor" stroke="n
 
 // ---- navigation & concepts
 export const IconOverview = (p: P) => <Svg {...p}><Tone d="M3.5 4.5h7v8h-7zM13.5 11.5h7v8h-7z" /><path d="M3.5 4.5h7v8h-7zM13.5 11.5h7v8h-7zM13.5 4.5h7v4h-7zM3.5 15.5h7v4h-7z" /></Svg>;
+export const IconPlay = (p: P) => <Svg {...p}><Tone d="M3.5 9.5a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4v3.5a4 4 0 0 1-7 2.6h-3a4 4 0 0 1-7-2.6z" /><path d="M3.5 9.5a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4v3.5a4 4 0 0 1-7 2.6h-3a4 4 0 0 1-7-2.6zM8 9v4M6 11h4" /><circle cx="15.5" cy="10" r="1" /><circle cx="17.5" cy="12.5" r="1" /></Svg>;
 export const IconShelf = (p: P) => <Svg {...p}><Tone d="M5 4h4v5H5zM11 5h3v4h-3zM6 13h3v5H6zM12 12h5v6h-5z" /><path d="M3 9.5h18M3 18.5h18M3 3v18M21 3v18M5 4h4v5.5M11 5h3v4.5M6 13h3v5.5M12 12h5v6.5" /></Svg>;
 export const IconInventory = IconShelf;
 export const IconNextMove = (p: P) => <Svg {...p}><Tone d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" /><circle cx="12" cy="12" r="9" /><path d="M8 12h7M12 8.5l3.5 3.5-3.5 3.5" /></Svg>;

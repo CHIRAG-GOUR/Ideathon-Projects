@@ -50,12 +50,12 @@ await page.getByLabel('Store name').fill('Corner Express — MG Road');
 await page.getByLabel('Location / area').fill('Indiranagar, Bengaluru');
 await page.getByRole('button', { name: 'Create store' }).click();
 // 3–8. Products load, engine runs, Overview shows real values and the highest-priority Next Move
-await page.getByText('What should I do next?').waitFor({ timeout: 30000 });
+await page.locator('#next-move').waitFor({ timeout: 30000 });
 await page.waitForTimeout(1500);
-check(await page.getByText('Good morning, Asha').or(page.getByText('Good afternoon, Asha')).or(page.getByText('Good evening, Asha')).first().isVisible(), 'signed in, store created, greeting shown');
+check(/^Good (morning|afternoon|evening), Corner Express — MG Road$/.test((await page.getByRole('heading', { level: 1 }).innerText()).trim()), 'signed in, store created, greeting shown');
 const health = (await page.locator('section[aria-label="Today’s store health"]').innerText()).replace(/\s+/g, ' ');
-check(/62%/.test(health) && /5 RESTOCK RISK/i.test(health) && /6 EXPIRY RISK/i.test(health), 'Overview store health computed from the stored products', health.slice(0, 160));
-const hero = await page.locator('article').first().innerText();
+check(/INVENTORY HEALTH 62%/i.test(health) && /RESTOCK 5/i.test(health) && /SELL SOON 6/i.test(health) && /SLOW MOVERS 8/i.test(health), 'Overview store health computed from the stored products', health.slice(0, 160));
+const hero = await page.locator('section[aria-labelledby="next-move"]').innerText();
 check(/RESTOCK/i.test(hero) && /Samosa/.test(hero), 'Next Move shows the highest-priority action', hero.split('\n').slice(0, 4).join(' / '));
 
 const userDocs = await admin('users');

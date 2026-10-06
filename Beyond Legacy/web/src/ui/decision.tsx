@@ -88,7 +88,7 @@ export function Reasoning({ a }: { a: Analysis }) {
         <p className="mt-1 text-[14px] text-ink-2">{r.ifIgnored}</p>
       </div>
       <p className="text-[12px] text-ink-faint">
-        Based on {a.demand.source === 'sales' ? `${a.demand.daysOfData} days of recorded sales` : a.demand.source === 'blended' ? `${a.demand.daysOfData} days of sales blended with your estimate` : a.demand.source === 'declared' ? 'your daily sales estimate (no sales recorded yet)' : 'no sales data yet'} and the thresholds on the Store page — calculated by Beyond Legacy’s rules engine, not guessed.
+        Based on {a.demand.source === 'sales' ? `${a.demand.daysOfData} days of recorded sales` : a.demand.source === 'blended' ? `${a.demand.daysOfData} days of sales blended with your estimate` : a.demand.source === 'declared' ? 'your daily sales estimate (no sales recorded yet)' : 'no sales data yet'} and the thresholds on the Store page — calculated by SmartShelf’s rules engine, not guessed.
       </p>
     </div>
   );

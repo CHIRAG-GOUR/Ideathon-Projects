@@ -37,7 +37,7 @@ function BrandPanel() {
       <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-green-mid/40 blur-3xl" aria-hidden />
       <div className="relative flex items-center gap-3">
         <Logo size={44} onDark />
-        <p className="font-display text-2xl font-extrabold">Beyond Legacy</p>
+        <div><p className="font-display text-2xl font-extrabold leading-tight">SmartShelf <span className="text-yellow">AI</span></p><p className="text-[12px] font-semibold text-white/60">by Beyond Legacy · Don’t just inherit it. Improve it.</p></div>
       </div>
       <CheckoutIllustration className="relative mx-auto mt-8 w-full max-w-[420px]" />
       <div className="relative mt-auto max-w-md">
@@ -86,7 +86,7 @@ export function AuthScreen() {
       <BrandPanel />
       <div className="flex flex-col justify-center px-5 py-10 sm:px-10">
         <div className="mx-auto w-full max-w-[400px]">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden"><Logo size={36} /><p className="font-display text-xl font-extrabold">Beyond Legacy</p></div>
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden"><Logo size={36} /><p className="font-display text-xl font-extrabold">SmartShelf AI</p></div>
           <h1 className="font-display text-[28px] font-extrabold tracking-tight text-ink">{mode === 'in' ? 'Sign in' : mode === 'up' ? 'Create your account' : 'Reset your password'}</h1>
           <p className="mt-1 text-[14.5px] text-ink-muted">{mode === 'in' ? 'Welcome back. Your store’s next moves are waiting.' : mode === 'up' ? 'Set up your store in under a minute.' : 'We’ll email you a link to choose a new password.'}</p>
           <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
@@ -119,7 +119,7 @@ export function AuthScreen() {
           <div className="mt-6 space-y-2 text-center text-[14px] text-ink-muted">
             {mode === 'in' && <p><button className="font-semibold text-green hover:underline" onClick={() => (setMode('forgot'), setErr(null))}>Forgot password?</button></p>}
             <p>
-              {mode === 'up' ? 'Already have an account? ' : mode === 'in' ? 'New to Beyond Legacy? ' : ''}
+              {mode === 'up' ? 'Already have an account? ' : mode === 'in' ? 'New to SmartShelf AI? ' : ''}
               <button className="font-semibold text-green hover:underline" onClick={() => (setMode(mode === 'up' ? 'in' : mode === 'in' ? 'up' : 'in'), setErr(null))}>
                 {mode === 'up' ? 'Sign in' : mode === 'in' ? 'Create an account' : 'Back to sign in'}
               </button>
@@ -158,7 +158,7 @@ export function StoreSetup() {
         <div className="flex items-center gap-3"><Logo size={44} /><StorefrontMini className="w-28" /></div>
         <p className="mt-6 text-[12px] font-extrabold uppercase tracking-[0.14em] text-green">Step 1 of 1</p>
         <h1 className="mt-1 font-display text-[28px] font-extrabold tracking-tight text-ink">Create your store</h1>
-        <p className="mt-1 text-[14.5px] text-ink-muted">This is the store Beyond Legacy will analyse. You can change it later.</p>
+        <p className="mt-1 text-[14.5px] text-ink-muted">This is the store SmartShelf AI will analyse. You can change it later.</p>
         {s.mode === 'local' && <p className="mt-4 rounded-xl bg-warn-bg px-3 py-2.5 text-[13.5px] text-warn-fg">This build has no Firebase project configured, so your store is saved <b>on this device only</b>. See FIREBASE_SETUP.md to enable accounts and sync.</p>}
         <form onSubmit={create} className="mt-6 space-y-4 rounded-xl3 border border-line bg-surface p-5 shadow-card" noValidate>
           <Field label="Store name" htmlFor="s-name"><Input id="s-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Corner Express — MG Road" maxLength={80} /></Field>

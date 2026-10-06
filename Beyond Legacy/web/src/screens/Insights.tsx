@@ -23,7 +23,7 @@ export default function Insights() {
   const h = analysis.health;
   const banner = {
     summary: { kicker: 'What is changing', title: 'Insights', sub: 'Which products are gaining or losing demand, and how each aisle is performing.', art: <ForecastIllustration size={128} />, tone: 'green' as const },
-    restock: { kicker: 'Stock-out risk', title: 'Restock board', sub: 'Products that may become unavailable, soonest first. Beyond Legacy records your orders — it does not contact suppliers.', art: <RestockIllustration size={128} />, tone: 'green' as const },
+    restock: { kicker: 'Stock-out risk', title: 'Restock board', sub: 'Products that may become unavailable, soonest first. SmartShelf records your orders — it does not contact suppliers.', art: <RestockIllustration size={128} />, tone: 'green' as const },
     expiry: { kicker: 'Sell-first shelf', title: 'Expiry', sub: 'Stock approaching its expiry date, and how much of it is likely to go unsold at today’s demand.', art: <ExpiryIllustration size={128} />, tone: 'yellow' as const },
     slow: { kicker: 'The quiet shelf', title: 'Slow movers', sub: 'Products with low recent sales relative to the stock on hand.', art: <QuietShelfIllustration size={128} />, tone: 'quiet' as const },
   }[t];
@@ -181,7 +181,7 @@ function Slow() {
   return (
     <div className="space-y-4">
       <div className="rounded-xl3 bg-surface p-4 ring-1 ring-line">
-        <p className="text-[14px] text-ink-2">These products are <b>not necessarily bad</b> — they are overstocked relative to current demand (more than {workspace.settings.slowCoverageDays} days of cover). The move is to <b>hold</b> purchasing. A promotion or placement review may help; Beyond Legacy does not apply discounts automatically.</p>
+        <p className="text-[14px] text-ink-2">These products are <b>not necessarily bad</b> — they are overstocked relative to current demand (more than {workspace.settings.slowCoverageDays} days of cover). The move is to <b>hold</b> purchasing. A promotion or placement review may help; SmartShelf does not apply discounts automatically.</p>
         {xs.length > 0 && <p className="mt-1.5 text-[13.5px] font-bold text-ink-muted">{rupees(tied)} of stock is resting on this shelf across {xs.length} products.</p>}
       </div>
       {xs.length === 0 ? <Card><Empty title="No slow stock" body="Every product will sell through its current stock within the slow-stock threshold." /></Card> : (

@@ -1,9 +1,10 @@
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { fmt1 } from '../engine/analyze';
 import { friendlyError } from '../data/repo';
 import { resetLocalWorkspace } from '../data/local';
 import { useWorkspace } from '../state/session';
-import { IconDownload } from '../ui/icons';
+import { IconDownload, IconSignOut } from '../ui/icons';
 import { Button, Card, Kicker, SectionTitle, Sheet, useToast } from '../ui/kit';
 import { PageBanner } from '../ui/page';
 
@@ -14,7 +15,7 @@ function csvCell(v: unknown) {
 
 export default function Settings() {
   const s = useWorkspace();
-  const { workspace, analysis, repo } = s;
+  const { workspace, analysis, repo, mode, user } = s;
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<null | 'demo' | 'reset'>(null);
@@ -39,7 +40,7 @@ export default function Settings() {
     const csv = [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
     const name = `beyond-legacy-inventory-${s.todayStr}.csv`;
     const native = (window as unknown as { BeyondLegacyApp?: { shareFile(name: string, mime: string, text: string): void } }).BeyondLegacyApp;
-    if (native) return native.shareFile(name, 'text/csv', csv);
+    if (native) return native.shareFile(name, 'text/csv', csv); // Android app: hand the file to the system share sheet
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = Object.assign(document.createElement('a'), { href: url, download: name });
@@ -52,14 +53,22 @@ export default function Settings() {
       <PageBanner kicker="Account & data" title="Settings" sub="Account, data and how recommendations are made." tone="deep" />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card className="p-5">
-          <SectionTitle title="Store Profile & Access" />
-          <div className="space-y-3 text-[14px]">
-            <p className="text-ink-2">Store: <b className="text-ink">{workspace.store.name}</b></p>
-            <p className="text-[13px] text-ink-muted">Direct Access Mode · Fast offline-first inventory predictions and automated reorder triggers.</p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button tone="light" onClick={() => setConfirm('reset')}>Reset to Default Store</Button>
+          <SectionTitle title="Account" />
+          {mode === 'cloud' ? (
+            <div className="space-y-3 text-[14px]">
+              <p className="text-ink-2">Signed in as <b className="text-ink">{user?.email}</b></p>
+              <p className="text-[13px] text-ink-muted">Store data is stored in Firebase ({s.projectId}) and only your account can read or change it.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button busy={busy === 'pw'} onClick={() => run('pw', () => s.resetPassword(user!.email), 'Password reset email sent')}>Change password</Button>
+                <Button tone="ghost" onClick={() => s.signOut()}><IconSignOut size={17} />Sign out</Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3 text-[14px]">
+              <p className="rounded-xl bg-warn-bg px-3 py-2.5 text-[13.5px] text-warn-fg">No Firebase project is configured for this build. Your store is saved on this device only — clearing browser data removes it.</p>
+              <Button tone="danger" onClick={() => setConfirm('reset')}>Reset this device’s store</Button>
+            </div>
+          )}
         </Card>
 
         <Card className="p-5">
@@ -96,8 +105,17 @@ export default function Settings() {
           <p className="mt-4 rounded-xl bg-canvas px-3 py-2.5 text-[13px] text-ink-muted">These are transparent rules, not a trained model — every explanation in the app is built from the product’s own numbers. No external AI service is connected. The engine is a separate module, so a forecasting model can replace it later without changing the screens.</p>
         </Card>
 
+        <Card className="flex flex-wrap items-center justify-between gap-4 p-5 lg:col-span-2">
+          <div className="max-w-xl">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-ink-muted">Presentation tools</p>
+            <p className="mt-1 font-display text-[17px] font-extrabold text-ink">Shelf Rush — Legacy vs SmartShelf</p>
+            <p className="mt-0.5 text-[13.5px] text-ink-muted">A separate demo for pitches: play one festival week by habit, then with SmartShelf’s engine, and compare the money. It does not touch your store data.</p>
+          </div>
+          <Link to="/play" className="inline-flex h-11 items-center rounded-xl bg-green-dark px-4 text-[14px] font-bold text-white hover:brightness-110">Open demo →</Link>
+        </Card>
+
         <Card className="p-5 lg:col-span-2">
-          <p className="font-display text-[15px] font-bold text-ink">Beyond Legacy <span className="font-sans text-[13px] font-medium text-ink-muted">· version 1.0.0</span></p>
+          <p className="font-display text-[15px] font-bold text-ink">SmartShelf AI <span className="font-sans text-[13px] font-medium text-ink-muted">· by Beyond Legacy · version 1.0.0</span></p>
           <p className="mt-0.5 text-[13.5px] text-ink-muted">Predict what comes next. Act before it becomes a problem.</p>
         </Card>
       </div>

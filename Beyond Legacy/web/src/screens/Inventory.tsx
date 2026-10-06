@@ -1,4 +1,5 @@
 // Inventory: a visual shelf of digital shelf labels by default, with a compact list view for scanning.
+import { IsoStore } from '../art/IsoStore';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -94,7 +95,9 @@ export default function Inventory() {
       <p className="text-[12.5px] font-semibold text-ink-muted" aria-live="polite">{rows.length} {rows.length === 1 ? 'product' : 'products'}{filtered && <> · <button className="font-extrabold text-green" onClick={() => setSp(new URLSearchParams(view === 'list' ? 'view=list' : ''), { replace: true })}>Clear filters</button></>}</p>
 
       {rows.length === 0 ? (
-        <Card><Empty title={filtered ? 'No products match these filters' : 'No products yet'} body={filtered ? 'Try a different search or clear the filters.' : 'Add a product with its stock, sales and expiry to get recommendations.'} action={!filtered && <Button tone="primary" onClick={sheets.addProduct}>Add product</Button>} /></Card>
+        <Card>{filtered
+          ? <Empty title="No products match these filters" body="Try a different search or clear the filters." />
+          : <Empty art={<div className="w-[260px]"><IsoStore scan={false} title="An empty store" /></div>} title="Your store is ready" body="Add your first products and SmartShelf starts learning: stock → sales → expiry → demand → your next move." action={<Button tone="primary" onClick={sheets.addProduct}>Add your first product</Button>} />}</Card>
       ) : view === 'grid' ? (
         <LayoutGroup>
           <motion.div layout className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">

@@ -1,1 +1,5 @@
-{"projects":{"default":"ideathon-projects"}}
+{
+  "projects": {
+    "default": "ideathon-projects"
+  }
+}

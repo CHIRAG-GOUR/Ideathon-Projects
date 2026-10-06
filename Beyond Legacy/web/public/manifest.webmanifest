@@ -1,6 +1,6 @@
 {
-  "name": "Beyond Legacy",
-  "short_name": "Beyond Legacy",
+  "name": "SmartShelf AI by Beyond Legacy",
+  "short_name": "SmartShelf AI",
   "description": "Inventory decisions for convenience stores — know what to do next.",
   "start_url": "/",
   "display": "standalone",

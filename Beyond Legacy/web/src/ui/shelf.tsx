@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ProductArt } from '../art/ProductArt';
 import { CategoryScene } from '../art/scenes';
-import { fmt1, rupees, type Analysis } from '../engine/analyze';
-import { relativeDay } from '../engine/dates';
+import { fmt1, type Analysis } from '../engine/analyze';
 import type { Category, EngineSettings } from '../engine/types';
 import { isCritical } from './decision';
-import { ActionBadge, cx, StockBar } from './kit';
+import { IconChevronRight } from './icons';
+import { ActionBadge, cx } from './kit';
 
 /** "Cold Coffee 250ml" → ["Cold Coffee", "250ml"] so labels can print the size the way shelf tags do. */
 export function splitSize(name: string): [string, string] {
@@ -29,43 +29,36 @@ export const CATEGORY_TONE: Record<Category, string> = {
   'Packaged Food': 'bg-orange', 'Personal Care': 'bg-green-mid', Household: 'bg-green-dark', Other: 'bg-hold-dot',
 };
 
-/** The digital shelf label — the product card used across the app. */
-export function ShelfLabelCard({ a, settings, quiet }: { a: Analysis; settings: EngineSettings; quiet?: boolean }) {
+/** The digital shelf label — the product card. Deliberately four facts: name, stock, sales velocity, status.
+ * Everything else (expiry, forecast, reasoning, history) lives on the product page. */
+export function ShelfLabelCard({ a, quiet }: { a: Analysis; settings?: EngineSettings; quiet?: boolean }) {
   const p = a.product, r = a.recommendation;
   const [title, size] = splitSize(p.name);
-  const av = availability(a);
   const critical = isCritical(a);
+  const hold = r.action === 'HOLD';
+  const chip = a.handled ? ['bg-green-mint text-green', `✓ ${a.handled.status}`]
+    : !hold ? null
+    : a.flags.slow ? ['bg-orange-soft text-[#9A4712]', 'Slow mover']
+    : a.stockout.risk === 'MEDIUM' ? ['bg-cream-deep text-ink-2', 'Monitor']
+    : ['bg-green-mint text-green', 'Healthy'];
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} whileHover={{ y: -3 }} transition={{ type: 'spring', stiffness: 400, damping: 32 }} className="h-full">
       <Link to={`/products/${p.id}`} className={cx('group flex h-full flex-col overflow-hidden rounded-xl3 bg-surface shadow-card ring-1 ring-line transition-shadow hover:shadow-lift', quiet && 'saturate-[.55]')}>
-        <div className="relative bg-gradient-to-b from-cream to-cream-deep px-3 pt-3">
-          <div className="flex items-start justify-between gap-2">
-            <span className={cx('rounded-md px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em]', av.cls)}>{av.label}</span>
-            {p.demo && <span className="text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-ink-faint">Demo</span>}
-          </div>
-          <div className="flex justify-center pb-1 pt-0.5"><ProductArt product={p} size={92} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.03]" /></div>
-          {/* shelf edge with price strip */}
-          <div className="relative -mx-3 flex h-6 items-center justify-between bg-[#CDBB93] px-3 shelf-grain">
-            <span className={cx('h-full w-1.5', CATEGORY_TONE[p.category])} aria-hidden />
-            <span className="tag-shape rounded-l bg-yellow py-0.5 pl-1.5 pr-3 text-[11px] font-black tabular-nums text-ink">{rupees(p.unitPrice)}</span>
-          </div>
+        <div className="relative flex justify-center bg-gradient-to-b from-cream to-cream-deep px-3 pb-1 pt-4">
+          {p.demo && <span className="absolute right-2.5 top-2 text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-ink-faint">Demo</span>}
+          <ProductArt product={p} size={88} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.03]" />
         </div>
+        <div className="h-2 bg-[#CDBB93] shelf-grain" aria-hidden />
         <div className="flex flex-1 flex-col p-3.5">
-          <p className="truncate font-display text-[15px] font-extrabold uppercase leading-tight tracking-tight text-ink">{title}</p>
-          <p className="text-[12px] font-semibold text-ink-muted">{size || p.category}{size ? ` · ${p.category}` : ''}</p>
-          <div className="mt-2.5 flex items-baseline justify-between">
-            <p className="font-display text-[22px] font-extrabold tabular-nums leading-none text-ink">{p.stock}<span className="ml-1 text-[12px] font-bold text-ink-muted">units</span></p>
-            <p className="text-[12px] font-bold text-ink-muted">{fmt1(a.demand.daily)}/day</p>
+          <p className="truncate font-display text-[15px] font-extrabold leading-tight tracking-tight text-ink" title={p.name}>{title}{size && <> <span className="text-[12px] font-bold text-ink-muted">{size}</span></>}</p>
+          <div className="mt-2 flex items-baseline justify-between gap-2">
+            <p className={cx('font-display text-[22px] font-extrabold tabular-nums leading-none', p.stock <= 0 ? 'text-red-ink' : 'text-ink')}>{p.stock}<span className="ml-1 text-[12px] font-bold text-ink-muted">units</span></p>
+            <p className="text-[13px] font-bold tabular-nums text-ink-2">{fmt1(a.demand.daily)}<span className="text-ink-muted">/day</span></p>
           </div>
-          <StockBar days={a.coverageDays} warnAt={settings.reorderWindowDays} critAt={settings.highRiskDays} className="mt-2" />
-          <p className={cx('mt-1.5 text-[12px] font-bold', a.stockout.risk === 'HIGH' ? 'text-red-ink' : 'text-ink-2')}>
-            {a.coverageDays === null ? 'No recent demand' : a.coverageDays >= 60 ? '60+ days of stock' : `${fmt1(a.coverageDays)} days remaining`}
-            {a.expiry.daysToExpiry !== null && a.expiry.daysToExpiry <= 7 && <span className="text-orange"> · exp. {relativeDay(a.expiry.daysToExpiry).toLowerCase()}</span>}
-          </p>
           <div className="min-h-3 flex-1" />
-          <div className="flex items-center justify-between gap-2 border-t border-dashed border-line-strong pt-2.5">
-            <ActionBadge action={r.action} size="sm" critical={critical} />
-            <span className="truncate text-[12px] font-bold text-ink-2">{a.handled ? `✓ ${a.handled.status}` : r.quantity ? `Suggested +${r.quantity}` : r.action === 'SELL_SOON' ? `${a.expiry.unsold} at risk` : 'Review'}</span>
+          <div className="flex items-center justify-between gap-2 pt-1">
+            {chip ? <span className={cx('rounded-lg px-2 py-1 text-[11.5px] font-extrabold', chip[0])}>{chip[1]}</span> : <ActionBadge action={r.action} size="sm" critical={critical} />}
+            <IconChevronRight size={16} className="text-ink-faint transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </Link>

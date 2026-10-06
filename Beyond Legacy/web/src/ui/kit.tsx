@@ -63,15 +63,15 @@ export function AisleTag({ children, tone = 'green' }: { children: ReactNode; to
 
 // ---------------------------------------------------------------- action language
 export const ACTION_STYLE: Record<Action, { label: string; pill: string; stripe: string; tint: string; text: string; icon: (p: { size?: number }) => JSX.Element }> = {
-  RESTOCK: { label: 'Restock', pill: 'bg-green text-white', stripe: 'bg-green', tint: 'bg-green-mint/60', text: 'text-green', icon: IconRestock },
+  RESTOCK: { label: 'Restock', pill: 'bg-red text-white', stripe: 'bg-red', tint: 'bg-red-soft/70', text: 'text-red-ink', icon: IconRestock },
   SELL_SOON: { label: 'Sell soon', pill: 'bg-yellow text-ink', stripe: 'bg-yellow', tint: 'bg-yellow-soft', text: 'text-yellow-ink', icon: IconExpiry },
   HOLD: { label: 'Hold', pill: 'bg-hold-bg text-hold-fg ring-1 ring-inset ring-hold-fg/20', stripe: 'bg-hold-dot', tint: 'bg-hold-bg/60', text: 'text-hold-fg', icon: IconHold },
-  REMOVE: { label: 'Remove', pill: 'bg-red text-white', stripe: 'bg-red', tint: 'bg-red-soft', text: 'text-red-ink', icon: IconTrash },
+  REMOVE: { label: 'Remove', pill: 'bg-ink text-white', stripe: 'bg-ink', tint: 'bg-cream-deep', text: 'text-ink', icon: IconTrash },
 };
 
-/** Critical moves (out of stock / under a day of cover) wear red regardless of action. */
+/** Colour carries meaning: red = restock risk, yellow = sell soon, neutral = hold, charcoal = remove. Critical restocks get a ring. */
 export function actionTone(action: Action, critical: boolean) {
-  return critical ? { ...ACTION_STYLE[action], pill: 'bg-red text-white', stripe: 'bg-red', tint: 'bg-red-soft' } : ACTION_STYLE[action];
+  return critical && action === 'RESTOCK' ? { ...ACTION_STYLE[action], pill: 'bg-red text-white ring-2 ring-red/30 ring-offset-1' } : ACTION_STYLE[action];
 }
 
 export function ActionBadge({ action, size = 'md', critical }: { action: Action; size?: 'sm' | 'md' | 'lg'; critical?: boolean }) {
