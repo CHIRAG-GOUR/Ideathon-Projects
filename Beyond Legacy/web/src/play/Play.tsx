@@ -25,6 +25,7 @@ export default function Play() {
         <RoundView
           key={screen.round}
           round={screen.round}
+          previousLegacyResult={results.legacy}
           onFinish={(t) => setResults((r) => ({ ...r, [screen.round]: t }))}
           onNext={() => setScreen(screen.round === 'legacy' ? { kind: 'round', round: 'smart' } : { kind: 'compare' })}
           onExit={() => setScreen({ kind: 'intro' })}
@@ -74,7 +75,8 @@ function emptyPlan(): Plan {
   return { order: Object.fromEntries(ITEMS.map((i) => [i.id, 0])), discount: Object.fromEntries(ITEMS.map((i) => [i.id, false])) };
 }
 
-function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish: (t: Totals) => void; onNext: () => void; onExit: () => void }) {
+function RoundView({ round, onFinish, onNext, onExit, previousLegacyResult }: { round: Round; onFinish: (t: Totals) => void; onNext: () => void; onExit: () => void; previousLegacyResult?: Totals }) {
+  const [showResultModal, setShowResultModal] = useState(false);
   const [state, setState] = useState<SimState>(newWeek);
   const [plan, setPlan] = useState<Plan>(emptyPlan);
   const [live, setLive] = useState<LiveDay | null>(null); // the open day; null = morning
@@ -108,7 +110,7 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
       const next = finishLive(L);
       setState(next);
       setPlan(emptyPlan());
-      if (next.done) { setAuto(false); onFinish(totals(next)); }
+      if (next.done) { setAuto(false); onFinish(totals(next)); setShowResultModal(true); }
       return null;
     });
   }, [onFinish]);
@@ -179,7 +181,7 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
         </Card>
 
         {state.done ? (
-          <RoundResult round={round} t={t} onNext={onNext} onExit={onExit} />
+          <RoundResult round={round} t={t} onNext={onNext} onExit={onExit} onOpenModal={() => setShowResultModal(true)} />
         ) : live ? (
           <Card className="flex flex-col p-4">
             <Kicker>You’re the worker · {DAYS[state.day]}</Kicker>
@@ -278,26 +280,207 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
           </Card>
         )}
       </div>
+      <SimulationResultModal
+        open={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        round={round}
+        t={t}
+        onNext={onNext}
+        onExit={onExit}
+        previousLegacyResult={previousLegacyResult}
+      />
     </>
   );
 }
 
-function RoundResult({ round, t, onNext, onExit }: { round: Round; t: Totals; onNext: () => void; onExit: () => void }) {
+function RoundResult({ round, t, onNext, onExit, onOpenModal }: { round: Round; t: Totals; onNext: () => void; onExit: () => void; onOpenModal: () => void }) {
+  const isBenefit = t.profit > 0;
   return (
     <Card className="p-5">
-      <Kicker>{round === 'legacy' ? 'Round 1 result · legacy way' : 'Round 2 result · SmartShelf way'}</Kicker>
-      <p className="mt-1 font-display text-[40px] font-extrabold leading-none tabular-nums">{rupees(t.profit)}</p>
-      <p className="text-[13px] text-ink-muted">profit for the week, after wastage</p>
+      <div className="flex items-center justify-between">
+        <Kicker>{round === 'legacy' ? 'Round 1 result · legacy way' : 'Round 2 result · SmartShelf way'}</Kicker>
+        <span className={cx('text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-full', isBenefit ? 'bg-green-soft text-green-dark border border-green/30' : 'bg-red-soft text-red-ink border border-red/30')}>
+          {isBenefit ? '✓ Net Benefit' : '⚠ Net Loss'}
+        </span>
+      </div>
+      <p className={cx("mt-1 font-display text-[40px] font-extrabold leading-none tabular-nums", isBenefit ? "text-green" : "text-red-ink")}>
+        {isBenefit ? `+${rupees(t.profit)}` : `-${rupees(Math.abs(t.profit))}`}
+      </p>
+      <p className="text-[13px] text-ink-muted">weekly net financial {isBenefit ? 'benefit (profit)' : 'loss'}, after wastage</p>
       <dl className="mt-4 grid grid-cols-2 gap-3">
-        {[[rupees(t.lostSales), `lost to stock-outs (${t.missedUnits} customers' items)`, 'text-red-ink'], [rupees(t.wastedValue), `thrown away (${t.wastedUnits} units expired)`, 'text-orange'], [rupees(t.stuckValue), 'cash stuck in dead stock', 'text-ink'], [rupees(t.revenue), 'sales', 'text-green']].map(([v, k, c]) => (
+        {[[rupees(t.lostSales), `lost to stock-outs (${t.missedUnits} items missed)`, 'text-red-ink'], [rupees(t.wastedValue), `thrown away (${t.wastedUnits} units expired)`, 'text-orange'], [rupees(t.stuckValue), 'cash stuck in dead stock', 'text-ink'], [rupees(t.revenue), 'gross counter sales', 'text-green']].map(([v, k, c]) => (
           <div key={k} className="rounded-2xl bg-cream-deep/70 p-3"><dd className={cx('font-display text-[22px] font-extrabold tabular-nums', c)}>{v}</dd><dt className="text-[12px] text-ink-muted">{k}</dt></div>
         ))}
       </dl>
-      <div className="mt-5 flex flex-wrap gap-2">
-        <Button tone="primary" size="lg" onClick={onNext}>{round === 'legacy' ? '▶ Play the same week with SmartShelf' : 'Compare both weeks →'}</Button>
-        <Button size="lg" onClick={onExit}>Leave</Button>
+      <div className="mt-5 space-y-2">
+        <Button tone="accent" size="lg" className="w-full shadow-md" onClick={onOpenModal}>
+          ✨ View Benefit / Loss Summary Pop-Up
+        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button tone="primary" size="lg" className="flex-1" onClick={onNext}>{round === 'legacy' ? '▶ Play same week with SmartShelf' : 'Compare both weeks →'}</Button>
+          <Button size="lg" onClick={onExit}>Leave</Button>
+        </div>
       </div>
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------- Result Pop-Up Modal
+function SimulationResultModal({
+  open,
+  onClose,
+  round,
+  t,
+  onNext,
+  onExit,
+  previousLegacyResult,
+}: {
+  open: boolean;
+  onClose: () => void;
+  round: Round;
+  t: Totals;
+  onNext: () => void;
+  onExit: () => void;
+  previousLegacyResult?: Totals;
+}) {
+  if (!open) return null;
+  const isBenefit = t.profit > 0;
+  const smart = round === 'smart';
+  const totalLeakage = t.lostSales + t.wastedValue;
+  const profitDiff = previousLegacyResult ? t.profit - previousLegacyResult.profit : 0;
+  const leakageSaved = previousLegacyResult ? (previousLegacyResult.lostSales + previousLegacyResult.wastedValue) - totalLeakage : 0;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-ink/75 backdrop-blur-md"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 20 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="relative w-full max-w-2xl rounded-3xl border border-line-strong bg-surface p-6 sm:p-8 shadow-2xl z-10 my-8 overflow-hidden text-ink"
+        >
+          {/* Header Badge */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className={cx(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold uppercase tracking-wider",
+                isBenefit ? "bg-green-soft text-green-dark border border-green/30" : "bg-red-soft text-red-ink border border-red/30"
+              )}>
+                <span className={cx("h-2 w-2 rounded-full animate-ping", isBenefit ? "bg-green" : "bg-red")} />
+                {isBenefit ? '✨ Financial Outcome: Net Benefit' : '⚠️ Financial Outcome: Net Loss'}
+              </span>
+              <span className="text-[12px] font-bold text-ink-muted">
+                {smart ? 'Round 2 · Smart AI' : 'Round 1 · Legacy'}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="grid h-9 w-9 place-items-center rounded-full bg-cream-deep hover:bg-line text-ink-muted hover:text-ink font-bold transition"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Primary Profit / Benefit Highlight Card */}
+          <div className={cx(
+            "mt-4 rounded-2xl p-6 text-white text-center relative overflow-hidden shadow-lift",
+            isBenefit ? "bg-gradient-to-br from-green-dark via-green to-green-mid" : "bg-gradient-to-br from-[#5A201B] via-red to-[#B3261E]"
+          )}>
+            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+            <p className="text-[11.5px] font-extrabold uppercase tracking-[0.18em] text-yellow">
+              {isBenefit ? 'Simulation Profit (Benefit)' : 'Simulation Deficit (Loss)'}
+            </p>
+            <h2 className="mt-1 font-display text-[48px] sm:text-[60px] font-extrabold leading-none tabular-nums tracking-tight">
+              {isBenefit ? `+${rupees(t.profit)}` : `-${rupees(Math.abs(t.profit))}`}
+            </h2>
+            <p className="mt-2 text-[14.5px] font-semibold text-white/90 max-w-lg mx-auto">
+              {isBenefit
+                ? `Store generated a net financial benefit of ${rupees(t.profit)} after accounting for purchase cost, wastage, and overhead!`
+                : `Store experienced a net financial loss due to heavy stockout penalties on peak rush days and expired inventory.`}
+            </p>
+          </div>
+
+          {/* Comparison Callout (if Smart AI round and legacy data exists) */}
+          {smart && previousLegacyResult && (
+            <div className="mt-4 rounded-2xl bg-yellow-soft/90 border border-yellow/40 p-4 flex items-start gap-3.5">
+              <span className="text-2xl">💡</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px] font-extrabold text-yellow-ink">
+                  Smart AI Advantage: {leakageSaved > 0 ? `Saved ${rupees(leakageSaved)} in prevented waste & stockouts` : 'Optimized store efficiency'}
+                </p>
+                <p className="text-[12.5px] text-ink-2 mt-0.5">
+                  Profit shifted from <b>{rupees(previousLegacyResult.profit)}</b> (Legacy) to <b>{rupees(t.profit)}</b> (Smart AI). That is a <b>{profitDiff >= 0 ? `+${rupees(profitDiff)} improvement` : `${rupees(profitDiff)} change`}</b>!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 4-Box Key Metrics Grid */}
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl bg-cream-deep/60 p-3.5 border border-line">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-muted">Gross Sales</p>
+              <p className="mt-1 font-display text-[22px] font-extrabold tabular-nums text-green">{rupees(t.revenue)}</p>
+              <p className="text-[11.5px] text-ink-muted mt-0.5">fulfilled counter orders</p>
+            </div>
+            <div className="rounded-2xl bg-cream-deep/60 p-3.5 border border-line">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-red-ink">Missed Sales</p>
+              <p className="mt-1 font-display text-[22px] font-extrabold tabular-nums text-red-ink">{rupees(t.lostSales)}</p>
+              <p className="text-[11.5px] text-ink-muted mt-0.5">{t.missedUnits} walked out empty</p>
+            </div>
+            <div className="rounded-2xl bg-cream-deep/60 p-3.5 border border-line">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-orange">Wasted Expiry</p>
+              <p className="mt-1 font-display text-[22px] font-extrabold tabular-nums text-orange">{rupees(t.wastedValue)}</p>
+              <p className="text-[11.5px] text-ink-muted mt-0.5">{t.wastedUnits} units spoiled</p>
+            </div>
+            <div className="rounded-2xl bg-cream-deep/60 p-3.5 border border-line">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-muted">Tied In Stock</p>
+              <p className="mt-1 font-display text-[22px] font-extrabold tabular-nums text-ink">{rupees(t.stuckValue)}</p>
+              <p className="text-[11.5px] text-ink-muted mt-0.5">unsold inventory</p>
+            </div>
+          </div>
+
+          {/* Key Insights / Next Move Advice */}
+          <div className="mt-4 rounded-2xl bg-cream/80 p-4 border border-line">
+            <p className="text-[11.5px] font-extrabold uppercase tracking-wider text-ink-muted">Manager Summary & Next Move</p>
+            <p className="mt-1 text-[13.5px] text-ink-2 leading-relaxed">
+              {!smart
+                ? `In this Legacy run, ordering by instinct resulted in ${t.missedUnits > 0 ? `${rupees(t.lostSales)} lost to empty shelves on peak festival days` : 'balanced orders'} and ${t.wastedUnits > 0 ? `${rupees(t.wastedValue)} lost in spoiled perishables in backroom inventory` : 'low wastage'}. Next, run Round 2 to let Smart AI optimize your replenishment.`
+                : `SmartShelf AI predicted customer surges ahead of Diwali eve and applied FIFO rotation to keep high-velocity stock filled while clearing short-dated batches.`}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              tone="primary"
+              size="lg"
+              className="flex-1"
+              onClick={() => {
+                onClose();
+                onNext();
+              }}
+            >
+              {!smart ? '▶ Play Round 2 with Smart AI' : '📊 View Side-by-Side Comparison →'}
+            </Button>
+            <Button size="lg" onClick={onClose}>
+              Explore 3D Store
+            </Button>
+            <Button tone="ghost" size="lg" onClick={() => { onClose(); onExit(); }}>
+              Exit Game
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
   );
 }
 
@@ -345,6 +528,7 @@ function Compare({ results, onReplay, onQuiz }: { results: Partial<Record<Round,
         <p className="mt-5 text-[12.5px] text-ink-muted">Simulation of 8 products over one week with the same seeded customer demand in both rounds. Recommendations come from the same engine the app uses; festival orders use last year’s festival lift. Figures are illustrative, not field data.</p>
         <div className="mt-4 flex flex-wrap gap-2"><Button tone="primary" onClick={onReplay}>Play again</Button><Button onClick={onQuiz}>⚡ Beat the AI</Button></div>
       </Card>
+
     </>
   );
 }
