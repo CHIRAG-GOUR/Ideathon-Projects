@@ -1,0 +1,16 @@
+{
+  "name": "beyond-legacy",
+  "private": true,
+  "description": "Beyond Legacy — inventory decisions for convenience stores (web + Android, Firebase).",
+  "scripts": {
+    "test": "npm --prefix web test",
+    "typecheck": "npm --prefix web run typecheck",
+    "test:e2e": "npm --prefix web run build && npx -y firebase-tools@latest emulators:exec --project demo-beyond-legacy --only auth,firestore,hosting \"node tests/e2e.mjs\"",
+    "dev": "npm --prefix web run dev",
+    "build:web": "npm --prefix web run build",
+    "build:android": "bash android/build.sh",
+    "icons": "node android/tools/icons.mjs",
+    "firebase:setup": "bash tools/firebase-setup.sh",
+    "deploy": "npm run build:web && npx -y firebase-tools@latest deploy --only hosting,firestore"
+  }
+}

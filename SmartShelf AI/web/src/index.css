@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Beyond Legacy design tokens — an original convenience-retail palette (forest green, warm red, golden yellow, cream).
+   Components use these through Tailwind names (smart-*, risk-*, …); no raw hex values in components. */
+:root {
+  --smart-green: 14 107 71;          /* #0E6B47 primary, restock, retail identity */
+  --smart-green-mid: 24 133 90;      /* #18855A */
+  --smart-green-dark: 10 61 44;      /* #0A3D2C sidebar, hero sections */
+  --smart-green-deep: 7 42 31;       /* #072A1F */
+  --smart-mint: 214 241 225;         /* #D6F1E1 healthy surfaces */
+  --smart-red: 215 55 43;            /* #D7372B critical, stock-out */
+  --smart-red-soft: 251 228 225;     /* #FBE4E1 */
+  --smart-yellow: 245 184 46;        /* #F5B82E attention, highlights */
+  --smart-yellow-soft: 255 243 207;  /* #FFF3CF */
+  --smart-orange: 232 119 46;        /* #E8772E medium warnings */
+  --smart-orange-soft: 253 234 218;  /* #FDEADA */
+  --smart-cream: 251 245 233;        /* #FBF5E9 page */
+  --smart-cream-deep: 244 234 214;   /* #F4EAD6 shelf backdrops */
+  --smart-surface: 255 252 246;      /* #FFFCF6 cards */
+  --smart-surface-dark: 11 51 38;    /* #0B3326 */
+  --smart-text: 30 27 22;            /* #1E1B16 charcoal */
+  --smart-text-2: 72 66 57;          /* #484239 */
+  --smart-muted: 110 103 92;         /* #6E675C */
+  --smart-faint: 158 149 135;        /* #9E9587 */
+  --smart-border: 234 223 203;       /* #EADFCB */
+  --smart-border-strong: 218 204 178;/* #DACCB2 */
+  --smart-success: 30 138 85;        /* #1E8A55 */
+  --smart-warning: 176 106 5;        /* #B06A05 text on yellow */
+  --smart-danger: 179 38 30;         /* #B3261E text on red tint */
+  --smart-hold: 92 107 98;           /* #5C6B62 neutral green-grey */
+  --smart-hold-soft: 232 236 230;    /* #E8ECE6 */
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-cream font-sans text-ink antialiased; font-feature-settings: 'cv11', 'ss01'; }
+  :focus-visible { outline: 2px solid rgb(var(--smart-green)); outline-offset: 2px; }
+  input[type='date'], input[type='time'] { min-height: 44px; }
+  ::selection { background: rgb(var(--smart-yellow) / 0.5); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  /* the tear-off edge used on receipt-style confirmations */
+  .receipt-edge { -webkit-mask: radial-gradient(6px at 6px 100%, transparent 98%, #000) 0 0 / 12px 100% repeat-x; mask: radial-gradient(6px at 6px 100%, transparent 98%, #000) 0 0 / 12px 100% repeat-x; }
+  /* shelf-label notch (price tag shape) */
+  .tag-shape { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+  .shelf-grain { background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 7px); }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(2.2); opacity: 0; } }
+.pulse-ring { animation: pulse-ring 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
+
+/* Shelf Rush floating labels (+₹, restocked, out of stock) */
+@keyframes floatUp { from { transform: translateY(0); opacity: 1 } to { transform: translateY(-28px); opacity: 0 } }
