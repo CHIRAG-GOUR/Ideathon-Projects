@@ -1,15 +1,15 @@
 // Shelf Rush — "Legacy vs SmartShelf". Play the same festival week twice: by habit, then with the app's real
 // recommendation engine, and compare the money. Plus "Beat the AI", a 10-second decision quiz on real demo data.
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { analyseStore, rupees, fmt1, type Analysis } from '../engine/analyze';
 import { today } from '../engine/dates';
 import { demoProducts } from '../engine/demo';
 import { DEFAULT_SETTINGS, type Action } from '../engine/types';
 import { ProductArt } from '../art/ProductArt';
 import { ActionBadge, Button, Card, cx, Kicker } from '../ui/kit';
-import { aiMove, aiPlan, DAYS, FESTIVAL_DAY, habitPlan, ITEMS, newWeek, playDay, stockOf, totals, type DayLog, type Plan, type SimState, type Totals } from './sim';
-import { shelvesFrom } from './Store3D';
+import { backUnits, clockOf, DAY_LEN, finishLive, requestRestock, runToEnd, shelfUnits, smartTask, startLive, type LiveDay } from './live';
+import { aiMove, aiPlan, batchesOf, DAYS, expiringOn, FESTIVAL_DAY, habitPlan, ITEMS, newWeek, SHELF_CAP, stockOf, totals, units, type Plan, type SimState, type Totals } from './sim';
 
 const Store3D = lazy(() => import('./Store3D'));
 type Round = 'legacy' | 'smart';
@@ -75,59 +75,65 @@ function emptyPlan(): Plan {
 }
 
 function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish: (t: Totals) => void; onNext: () => void; onExit: () => void }) {
-  const reduce = useReducedMotion();
   const [state, setState] = useState<SimState>(newWeek);
   const [plan, setPlan] = useState<Plan>(emptyPlan);
-  const [open, setOpen] = useState<{ log: DayLog; next: SimState; extra: Record<string, number> } | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [live, setLive] = useState<LiveDay | null>(null); // the open day; null = morning
+  const [speed, setSpeed] = useState(1);
   const [auto, setAuto] = useState(false);
-  const raf = useRef(0);
+  const [note, setNote] = useState<string | null>(null);
+  const [, setTick] = useState(0);
   const smart = round === 'smart';
   const t = useMemo(() => totals(state), [state]);
   const moves = useMemo(() => (smart && !state.done ? Object.fromEntries(ITEMS.map((it) => [it.id, aiMove(state, it)])) : {}), [smart, state]);
   const festive = state.day >= FESTIVAL_DAY - 1 && !state.done;
+  // the morning view of the store: yesterday's shelves, today's delivery waiting in the stockroom
+  const preview = useMemo(() => startLive(state, plan, 'player'), [state, plan]);
+  const view = live ?? preview;
 
-  const startDay = (p: Plan) => {
-    if (open || state.done) return;
-    const next = playDay(state, p);
-    setOpen({ log: next.log[next.log.length - 1], next, extra: p.order });
-    const dur = reduce ? 250 : auto ? 1900 : 4200;
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const k = Math.min(1, (now - t0) / dur);
-      setProgress(k);
-      if (k < 1) raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
+  // while the store is open, the side panel follows the live counts
+  useEffect(() => {
+    if (!live) return;
+    const id = setInterval(() => setTick((k) => k + 1), 250);
+    return () => clearInterval(id);
+  }, [live]);
+
+  const open = (p: Plan, isAuto: boolean) => {
+    if (live || state.done) return;
+    setPlan(p);
+    setLive(startLive(state, p, isAuto ? (smart ? 'smart' : 'habit') : 'player'));
   };
-  useEffect(() => () => cancelAnimationFrame(raf.current), []);
-  // day finished → commit
-  useEffect(() => {
-    if (!open || progress < 1) return;
-    const id = setTimeout(() => {
-      setState(open.next);
-      setOpen(null);
-      setProgress(0);
+  const endDay = useCallback(() => {
+    setLive((L) => {
+      if (!L) return L;
+      const next = finishLive(L);
+      setState(next);
       setPlan(emptyPlan());
-      if (open.next.done) {
-        setAuto(false);
-        onFinish(totals(open.next));
-      }
-    }, reduce ? 50 : 500);
-    return () => clearTimeout(id);
-  }, [open, progress, onFinish, reduce]);
-  // auto-play: next day with the round's policy
+      if (next.done) { setAuto(false); onFinish(totals(next)); }
+      return null;
+    });
+  }, [onFinish]);
+  // auto-play: open the next day with the round's ordering and worker policy
   useEffect(() => {
-    if (auto && !open && !state.done) {
-      const id = setTimeout(() => startDay(smart ? aiPlan(state) : habitPlan(state)), reduce ? 50 : 350);
+    if (auto && !live && !state.done) {
+      const id = setTimeout(() => open(smart ? aiPlan(state) : habitPlan(state), true), 600);
       return () => clearTimeout(id);
     }
   });
-
-  const shelves = open ? shelvesFrom({ ...state, items: Object.fromEntries(Object.entries(state.items).map(([k, v]) => [k, { ...v, discount: !!plan.discount[k] }])) }, open.extra) : shelvesFrom(state);
+  const pick = (id: string) => {
+    const L = live ?? null;
+    if (!L) { setNote('Open the store first — then send the worker to restock.'); return; }
+    if (L.policy !== 'player') { setNote('Auto-play is running the worker.'); return; }
+    if (!backUnits(L, id)) { setNote(`No ${ITEMS.find((i) => i.id === id)!.name} in the stockroom — order more tomorrow.`); return; }
+    if (shelfUnits(L, id) >= SHELF_CAP[id] && !L.items[id].back.some((b) => (b.expiresDay ?? 99) < Math.min(99, ...L.items[id].shelf.map((x) => x.expiresDay ?? 99)))) { setNote('That shelf is already full.'); return; }
+    if (requestRestock(L, id)) setNote(null);
+    setTick((k) => k + 1);
+  };
+  const hint = live && smart && live.policy === 'player' ? smartTask(live) : null;
   const last = state.log[state.log.length - 1];
   const dayLoss = last ? ITEMS.reduce((n, it) => n + last.missed[it.id] * it.price, 0) : 0;
   const dayWaste = last ? ITEMS.reduce((n, it) => n + last.wasted[it.id] * it.cost, 0) : 0;
+  const served = live ? live.customers.filter((c) => c.paid).length : 0;
+  const leftEmpty = live ? live.customers.filter((c) => c.got === 0 && (c.phase === 'leaving' || c.phase === 'gone')).length : 0;
 
   return (
     <>
@@ -137,7 +143,7 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
           <h1 className="font-display text-[26px] font-extrabold leading-tight sm:text-[32px]">
             {state.done ? 'Week over' : `${DAYS[state.day]}${state.day === FESTIVAL_DAY ? ' — Diwali eve 🪔' : state.day === FESTIVAL_DAY - 1 ? ' — festival rush starts' : ''}`}
           </h1>
-          <p className="text-[13.5px] text-white/75">{smart ? 'The engine reads stock, sales and expiry each morning and suggests a move per product. You decide.' : 'No predictions. Order by habit and by what the shelves look like.'}</p>
+          <p className="text-[13.5px] text-white/75">{smart ? 'SmartShelf suggests the morning order and tells you which shelf to restock next. You decide.' : 'No predictions. Order by habit, restock by what the shelves look like.'}</p>
         </div>
         <dl className="flex flex-wrap gap-x-6 gap-y-1">
           {[[rupees(t.profit), 'profit so far'], [rupees(t.lostSales), 'lost to stock-outs'], [rupees(t.wastedValue), 'thrown away']].map(([v, k]) => (
@@ -149,48 +155,87 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(380px,1fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,1fr)]">
         <Card className="relative self-start overflow-hidden p-0 xl:sticky xl:top-24">
-          <div className="h-[46vh] min-h-[300px] xl:h-[min(640px,calc(100vh-140px))]">
+          <div className="h-[52vh] min-h-[320px] xl:h-[min(680px,calc(100vh-140px))]">
             <Suspense fallback={<div className="grid h-full place-items-center bg-green-dark text-white/70">Opening the store…</div>}>
-              <Store3D shelves={shelves} log={open?.log ?? null} progress={progress} festive={festive} />
+              <Store3D live={view} running={!!live} speed={speed} festive={festive} hint={hint?.item ?? null} onPick={pick} onEnd={endDay} />
             </Suspense>
           </div>
-          <AnimatePresence>
-            {open && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-3 top-3 rounded-xl bg-white/95 px-3 py-2 text-[13px] font-bold shadow-lift">
-                🛒 Store open · {Math.round(progress * 100)}% of the day
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {last && !open && !state.done && (
-            <div className="absolute left-3 top-3 max-w-[85%] rounded-xl bg-white/95 px-3 py-2 text-[13px] shadow-lift">
-              <b>{DAYS[last.day]} result:</b> sold {ITEMS.reduce((n, it) => n + last.sold[it.id], 0)} items ·{' '}
-              <span className={dayLoss ? 'font-bold text-red-ink' : ''}>missed {rupees(dayLoss)}</span> ·{' '}
-              <span className={dayWaste ? 'font-bold text-orange' : ''}>wasted {rupees(dayWaste)}</span>
+          <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
+            {live ? (
+              <span className="rounded-xl bg-white/95 px-3 py-2 text-[13px] font-bold shadow-lift">🕘 {clockOf(live.time)} · {live.time < DAY_LEN ? 'open' : 'closing — last customers'} · {served} served{leftEmpty ? <span className="text-red-ink"> · {leftEmpty} left empty-handed</span> : null}</span>
+            ) : last && !state.done ? (
+              <span className="rounded-xl bg-white/95 px-3 py-2 text-[13px] shadow-lift"><b>{DAYS[last.day]}:</b> sold {ITEMS.reduce((n, it) => n + last.sold[it.id], 0)} · <span className={dayLoss ? 'font-bold text-red-ink' : ''}>missed {rupees(dayLoss)}</span> · <span className={dayWaste ? 'font-bold text-orange' : ''}>wasted {rupees(dayWaste)}</span></span>
+            ) : null}
+          </div>
+          {live && (
+            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-xl bg-white/95 p-1 shadow-lift" role="group" aria-label="Speed">
+              {[1, 2, 4].map((k) => <button key={k} onClick={() => setSpeed(k)} aria-pressed={speed === k} className={cx('h-8 min-w-9 rounded-lg px-2 text-[12.5px] font-extrabold', speed === k ? 'bg-green text-white' : 'text-ink-2 hover:bg-cream-deep')}>{k}×</button>)}
+              <button onClick={() => { runToEnd(live); setTick((k) => k + 1); }} className="h-8 rounded-lg px-2 text-[12.5px] font-extrabold text-ink-2 hover:bg-cream-deep" title="Finish the day instantly">⏭ Finish day</button>
             </div>
           )}
-          <p className="absolute bottom-2 right-3 text-[11.5px] font-semibold text-white/70">Drag to look around · red ! = customer left without what they wanted</p>
+          <p className="pointer-events-none absolute bottom-2 left-3 right-3 text-right text-[11.5px] font-semibold text-white/75">Click a shelf or its number to restock · orange sticker = expires today · red ! = left without it · drag to look around</p>
         </Card>
 
         {state.done ? (
           <RoundResult round={round} t={t} onNext={onNext} onExit={onExit} />
+        ) : live ? (
+          <Card className="flex flex-col p-4">
+            <Kicker>You’re the worker · {DAYS[state.day]}</Kicker>
+            <p className="text-[13px] text-ink-muted">{live.policy === 'player' ? 'Send the worker to refill shelves from the stockroom. Restocking rotates stock: the oldest date goes to the front so it sells first.' : `Auto-play: the worker restocks ${smart ? 'the SmartShelf way (early, oldest date in front)' : 'by habit (only when a shelf is empty, newest cartons in front)'}.`}</p>
+            {hint && (
+              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-green-dark p-3 text-white">
+                <span className="text-[20px]" aria-hidden>🧠</span>
+                <p className="min-w-0 flex-1 text-[13px]"><b className="text-yellow">SmartShelf: restock {ITEMS.find((i) => i.id === hint.item)!.name}</b><br /><span className="text-white/75">{hint.why}</span></p>
+                <button onClick={() => pick(hint.item)} className="shrink-0 rounded-xl bg-yellow px-3 py-2 text-[13px] font-extrabold text-ink">Do it</button>
+              </div>
+            )}
+            {note && <p role="status" className="mt-3 rounded-xl bg-cream-deep px-3 py-2 text-[13px] font-semibold text-ink-2">{note}</p>}
+            <p className="mt-3 text-[12.5px] font-bold text-ink-2">
+              Worker: {live.worker.phase === 'idle' ? 'waiting at the stockroom' : live.worker.phase === 'back' ? 'walking back to the stockroom' : `${live.worker.phase === 'stocking' ? 'restocking' : 'carrying a carton to'} ${ITEMS.find((i) => i.id === live.worker.task)?.name}`}
+              {live.tasks.length > 0 && <span className="text-ink-muted"> · next: {live.tasks.map((id) => ITEMS.find((i) => i.id === id)!.name.split(' ')[0]).join(', ')}</span>}
+            </p>
+            <ul className="mt-2 flex-1 divide-y divide-line">
+              {ITEMS.map((it) => {
+                const sh = shelfUnits(live, it.id), bk = backUnits(live, it.id), cap = SHELF_CAP[it.id];
+                const expShelf = expiringOn(live.items[it.id].shelf, live.day), expBack = expiringOn(live.items[it.id].back, live.day);
+                const queued = live.tasks.includes(it.id) || live.worker.task === it.id;
+                return (
+                  <li key={it.id} className={cx('flex items-center gap-3 py-2', hint?.item === it.id && 'rounded-xl bg-yellow-soft/70 px-2')}>
+                    <ProductArt product={it} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13.5px] font-bold">{it.name}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="h-1.5 w-24 overflow-hidden rounded-full bg-cream-deep"><span className={cx('block h-full rounded-full transition-all', sh === 0 ? 'bg-red' : sh <= cap * 0.35 ? 'bg-orange' : 'bg-green')} style={{ width: `${(sh / cap) * 100}%` }} /></span>
+                        <span className="text-[12px] font-bold tabular-nums">{sh}/{cap}</span>
+                        <span className="text-[12px] text-ink-muted tabular-nums">+{bk} in back</span>
+                      </div>
+                      {(expShelf > 0 || expBack > 0) && <p className="text-[11.5px] font-bold text-orange">{expShelf + expBack} expire today{expBack ? ` (${expBack} hidden in the back!)` : ''}</p>}
+                    </div>
+                    <button disabled={live.policy !== 'player' || queued || bk === 0} onClick={() => pick(it.id)} className="h-9 shrink-0 rounded-xl bg-green px-3 text-[12.5px] font-extrabold text-white disabled:bg-cream-deep disabled:text-ink-muted">{queued ? 'Queued' : bk === 0 ? 'None in back' : 'Restock'}</button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-2 text-[12px] text-ink-muted">Today: {rupees(live.revenue)} taken at the counter.</p>
+          </Card>
         ) : (
           <Card className="flex flex-col p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <Kicker>Morning plan · {DAYS[state.day]}</Kicker>
-                <p className="text-[13px] text-ink-muted">Orders arrive before opening. Fresh items expire — the oldest stock sells first.</p>
+                <p className="text-[13px] text-ink-muted">Orders arrive in the stockroom before opening. Fresh items expire — restock so the oldest sells first.</p>
               </div>
               {smart
-                ? <Button size="sm" tone="primary" disabled={!!open} onClick={() => setPlan(aiPlan(state))}>✓ Apply all AI moves</Button>
-                : <Button size="sm" disabled={!!open} onClick={() => setPlan(habitPlan(state))}>Use my usual habit</Button>}
+                ? <Button size="sm" tone="primary" onClick={() => setPlan(aiPlan(state))}>✓ Apply all AI moves</Button>
+                : <Button size="sm" onClick={() => setPlan(habitPlan(state))}>Use my usual habit</Button>}
             </div>
             <ul className="mt-3 flex-1 divide-y divide-line">
               {ITEMS.map((it) => {
                 const st = state.items[it.id];
                 const stock = stockOf(st);
-                const exp = st.batches.filter((b) => b.expiresDay !== null && b.expiresDay <= state.day).reduce((n, b) => n + b.qty, 0);
+                const exp = expiringOn(batchesOf(st), state.day);
                 const m = moves[it.id];
                 const q = plan.order[it.id];
                 return (
@@ -200,16 +245,16 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] font-bold">{it.name}</p>
                         <p className="text-[12px] text-ink-muted">
-                          <b className={stock === 0 ? 'text-red-ink' : 'text-ink'}>{stock} in stock</b>
+                          <b className={stock === 0 ? 'text-red-ink' : 'text-ink'}>{units(st.shelf)} on shelf · {units(st.back)} in back</b>
                           {exp > 0 && <span className="font-bold text-orange"> · {exp} expire today</span>}
                           <span> · case {it.caseSize}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1" role="group" aria-label={`Order ${it.name}`}>
-                        <button disabled={!!open || q === 0} onClick={() => setPlan((p) => ({ ...p, order: { ...p.order, [it.id]: Math.max(0, q - it.caseSize) } }))} className="grid h-8 w-8 place-items-center rounded-lg bg-cream-deep font-bold disabled:opacity-40" aria-label="One case less">−</button>
+                        <button disabled={q === 0} onClick={() => setPlan((p) => ({ ...p, order: { ...p.order, [it.id]: Math.max(0, q - it.caseSize) } }))} className="grid h-8 w-8 place-items-center rounded-lg bg-cream-deep font-bold disabled:opacity-40" aria-label="One case less">−</button>
                         <span className="w-10 text-center text-[14px] font-extrabold tabular-nums">{q ? `+${q}` : '0'}</span>
-                        <button disabled={!!open} onClick={() => setPlan((p) => ({ ...p, order: { ...p.order, [it.id]: q + it.caseSize } }))} className="grid h-8 w-8 place-items-center rounded-lg bg-green text-white font-bold disabled:opacity-40" aria-label="One case more">+</button>
-                        <button disabled={!!open} onClick={() => setPlan((p) => ({ ...p, discount: { ...p.discount, [it.id]: !p.discount[it.id] } }))} aria-pressed={plan.discount[it.id]} className={cx('ml-1 h-8 rounded-lg px-2 text-[11.5px] font-extrabold', plan.discount[it.id] ? 'bg-yellow text-ink' : 'bg-cream-deep text-ink-muted')}>15% off</button>
+                        <button onClick={() => setPlan((p) => ({ ...p, order: { ...p.order, [it.id]: q + it.caseSize } }))} className="grid h-8 w-8 place-items-center rounded-lg bg-green font-bold text-white" aria-label="One case more">+</button>
+                        <button onClick={() => setPlan((p) => ({ ...p, discount: { ...p.discount, [it.id]: !p.discount[it.id] } }))} aria-pressed={plan.discount[it.id]} className={cx('ml-1 h-8 rounded-lg px-2 text-[11.5px] font-extrabold', plan.discount[it.id] ? 'bg-yellow text-ink' : 'bg-cream-deep text-ink-muted')}>15% off</button>
                       </div>
                     </div>
                     {smart && m && (
@@ -217,7 +262,7 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
                         <ActionBadge action={m.action} size="sm" />
                         <p className="min-w-0 flex-1 text-[12px] leading-snug"><b>{m.headline}</b> <span className="text-ink-muted">{m.why}</span></p>
                         {(m.order > 0 || m.discount) && (
-                          <button disabled={!!open} onClick={() => setPlan((p) => ({ order: { ...p.order, [it.id]: m.order }, discount: { ...p.discount, [it.id]: m.discount } }))} className="shrink-0 rounded-lg bg-green px-2 py-1 text-[11.5px] font-bold text-white disabled:opacity-40">Use</button>
+                          <button onClick={() => setPlan((p) => ({ order: { ...p.order, [it.id]: m.order }, discount: { ...p.discount, [it.id]: m.discount } }))} className="shrink-0 rounded-lg bg-green px-2 py-1 text-[11.5px] font-bold text-white">Use</button>
                         )}
                       </div>
                     )}
@@ -226,8 +271,8 @@ function RoundView({ round, onFinish, onNext, onExit }: { round: Round; onFinish
               })}
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button tone="primary" size="lg" className="flex-1" disabled={!!open} onClick={() => startDay(plan)}>▶ Open the store</Button>
-              <Button size="lg" disabled={!!open || auto} onClick={() => setAuto(true)}>{smart ? 'Auto-play: follow the AI' : 'Auto-play: by habit'}</Button>
+              <Button tone="primary" size="lg" className="flex-1" onClick={() => open(plan, false)}>▶ Open the store — I’ll restock</Button>
+              <Button size="lg" disabled={auto} onClick={() => { setAuto(true); setSpeed(4); }}>{smart ? 'Auto-play: follow the AI' : 'Auto-play: by habit'}</Button>
             </div>
             <button onClick={onExit} className="mt-2 self-start text-[12.5px] font-semibold text-ink-muted underline">Leave game</button>
           </Card>

@@ -2,7 +2,7 @@
 
 | Suite | Command | Result (last run) |
 |---|---|---|
-| Unit tests (vitest): engine + Shelf Rush simulation | `npm test` | **12 / 12 pass** |
+| Unit tests (vitest): engine + Shelf Rush week and live day | `npm test` | **14 / 14 pass** |
 | End-to-end acceptance on Firebase emulators (Auth + Firestore + Hosting, real rules, Chromium) | `npm run test:e2e` | **23 / 23 checks pass** |
 | Type-check | `npm run typecheck` | clean |
 | Android build | `npm run build:android` | APK signature verified (v2), AAB `jarsigner -verify` + `bundletool validate` ok |

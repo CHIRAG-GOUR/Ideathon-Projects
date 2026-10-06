@@ -1,99 +1,92 @@
-// The 3D kirana store for Shelf Rush. Shelves show the real simulated stock; during a day customers walk in, take
-// products, and leave (a red marker when what they wanted was out of stock). Simple shapes, no external assets.
+// The 3D kirana store for Shelf Rush, drawn from the live day (live.ts): shelves hold real product models and shrink
+// as customers take them; customers walk the aisles, carry what they picked, queue and pay at the counter; the worker
+// carries cartons from the stockroom. Click a shelf (or its number tag) to send the worker to restock it.
 import { Html, OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Group, Mesh } from 'three';
+import { CASHIER, COUNTER, DOOR, shelfPos, stepLive, STOCKROOM, type Customer, type LiveDay } from './live';
 import { lookFor, Person, SHOPKEEPER, type Look, type PersonHandle } from './Person';
-import { ITEMS, stockOf, type DayLog, type SimItem, type SimState } from './sim';
+import { Carton, PaperBag, ProductModel } from './Products3D';
+import { ITEMS, SHELF_CAP, expiringOn, units, type SimItem } from './sim';
 
-const SLOT_UNITS: Record<string, number> = { milk: 3, bread: 1, paneer: 1, sweets: 1, oil: 1, atta: 1, namkeen: 2, biscuits: 4 };
-const SHAPE: Record<string, [number, number, number]> = {
-  milk: [0.22, 0.3, 0.16], bread: [0.3, 0.2, 0.2], paneer: [0.26, 0.1, 0.2], sweets: [0.3, 0.12, 0.26],
-  oil: [0.18, 0.4, 0.14], atta: [0.3, 0.36, 0.16], namkeen: [0.24, 0.3, 0.08], biscuits: [0.28, 0.1, 0.14],
-};
-const POS: [number, number][] = [[-4.2, -3], [-1.4, -3], [1.4, -3], [4.2, -3], [-4.2, 0.2], [-1.4, 0.2], [1.4, 0.2], [4.2, 0.2]];
-const DOOR: [number, number] = [-5.6, 4.6];
-const COUNTER: [number, number] = [4.4, 3.4];
+const WORKER_LOOK: Look = { skin: '#8D5524', top: '#0E6B47', bottom: '#2C3E50', hair: '#151515', hairStyle: 'cap', outfit: 'shirt', accent: '#F5B82E', height: 1.02, basket: false };
+const LEVELS = [0.15, 0.75, 1.35];
 
-export interface Shelf { stock: number; expiring: number; discount: boolean }
-export function shelvesFrom(state: SimState, extra?: Record<string, number>): Record<string, Shelf> {
-  return Object.fromEntries(ITEMS.map((it) => {
-    const s = state.items[it.id];
-    const expiring = s.batches.filter((b) => b.expiresDay !== null && b.expiresDay <= state.day).reduce((n, b) => n + b.qty, 0);
-    return [it.id, { stock: stockOf(s) + (extra?.[it.id] ?? 0), expiring, discount: s.discount }];
-  }));
-}
-
-function ShelfUnit({ it, x, z, shelf, sold, progress, festive }: { it: SimItem; x: number; z: number; shelf: Shelf; sold: number; progress: number; festive: boolean }) {
-  const ups = SLOT_UNITS[it.id] ?? 1;
-  const shown = Math.max(0, shelf.stock - Math.round(sold * progress));
-  const slots = Math.min(18, Math.ceil(shown / ups));
-  const old = Math.min(slots, Math.ceil(shelf.expiring / ups));
-  const [w, h, d] = SHAPE[it.id];
-  const out = shown === 0;
+function ShelfUnit({ it, index, live, hint, onPick }: { it: SimItem; index: number; live: LiveDay; hint: boolean; onPick: (id: string) => void }) {
+  const { x, z } = shelfPos(index);
+  const s = live.items[it.id], cap = SHELF_CAP[it.id];
+  const onShelf = units(s.shelf), back = units(s.back), exp = expiringOn(s.shelf, live.day);
+  const perLevel = Math.ceil(cap / 3), gap = 2.0 / perLevel;
+  const out = onShelf === 0;
+  const arrow = useRef<Mesh>(null);
+  useFrame(({ clock }: { clock: any }) => { if (arrow.current) arrow.current.position.y = 2.95 + Math.sin(clock.elapsedTime * 3) * 0.08; });
   return (
     <group position={[x, 0, z]}>
-      {/* frame */}
-      <mesh position={[0, 1.05, -0.3]}><boxGeometry args={[2.3, 2.1, 0.06]} /><meshStandardMaterial color="#0E6B47" /></mesh>
-      {[-1.15, 1.15].map((sx) => <mesh key={sx} position={[sx, 1.05, 0]}><boxGeometry args={[0.06, 2.1, 0.66]} /><meshStandardMaterial color="#0A3D2C" /></mesh>)}
-      {[0.12, 0.72, 1.32, 1.92].map((y) => <mesh key={y} position={[0, y, 0]}><boxGeometry args={[2.3, 0.05, 0.66]} /><meshStandardMaterial color="#C89B63" /></mesh>)}
-      {/* products: oldest (expiring) first, tinted */}
-      {Array.from({ length: slots }, (_, i) => {
-        const level = Math.floor(i / 6), col = i % 6;
-        const expiring = i < old;
+      <group
+        onClick={(e) => { e.stopPropagation(); onPick(it.id); }}
+        onPointerOver={() => (document.body.style.cursor = 'pointer')}
+        onPointerOut={() => (document.body.style.cursor = '')}
+      >
+        <mesh position={[0, 1.05, -0.3]}><boxGeometry args={[2.3, 2.1, 0.06]} /><meshStandardMaterial color={hint ? '#13804F' : '#0E6B47'} /></mesh>
+        {[-1.15, 1.15].map((sx) => <mesh key={sx} position={[sx, 1.05, 0]}><boxGeometry args={[0.06, 2.1, 0.66]} /><meshStandardMaterial color="#0A3D2C" /></mesh>)}
+        {[0.12, 0.72, 1.32, 1.92].map((y) => <mesh key={y} position={[0, y, 0]}><boxGeometry args={[2.3, 0.05, 0.66]} /><meshStandardMaterial color="#C89B63" /></mesh>)}
+        {/* price strip on each shelf edge */}
+        {[0.12, 0.72, 1.32].map((y) => <mesh key={y} position={[0, y - 0.01, 0.335]}><boxGeometry args={[2.3, 0.06, 0.01]} /><meshStandardMaterial color={out ? '#D7372B' : '#F5B82E'} /></mesh>)}
+      </group>
+      {/* the products themselves: front-of-queue items first, those expiring today carry an orange date sticker */}
+      {Array.from({ length: Math.min(onShelf, cap) }, (_, i) => {
+        const level = Math.floor(i / perLevel), col = i % perLevel;
         return (
-          <mesh key={i} position={[-0.95 + col * 0.38, 0.15 + level * 0.6 + h / 2, 0.05 + (i % 2) * 0.04]}>
-            <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial color={expiring ? '#E8772E' : it.color} roughness={0.55} />
-          </mesh>
+          <group key={i} position={[-1.0 + gap / 2 + col * gap, LEVELS[level], 0.04]}>
+            <ProductModel id={it.id} expiring={i < exp} />
+          </group>
         );
       })}
-      {festive && it.festival >= 2 && <mesh position={[0, 2.25, -0.27]}><boxGeometry args={[2.1, 0.22, 0.04]} /><meshStandardMaterial color="#F5B82E" emissive="#F5B82E" emissiveIntensity={0.35} /></mesh>}
-      <Html position={[0, 2.55, 0]} center distanceFactor={9} zIndexRange={[10, 0]}>
-        <div className="pointer-events-none select-none whitespace-nowrap text-center">
-          <div className={`rounded-lg px-2 py-0.5 text-[13px] font-extrabold shadow ${out ? 'bg-red text-white' : 'bg-white/95 text-ink'}`}>
-            {it.name.replace(/ \d.*$/, '')} · {out ? 'OUT' : shown}
-          </div>
-          <div className="mt-0.5 flex justify-center gap-1">
-            {shelf.discount && <span className="rounded bg-yellow px-1.5 text-[11px] font-extrabold text-ink">15% OFF</span>}
-            {shelf.expiring > 0 && <span className="rounded bg-orange px-1.5 text-[11px] font-extrabold text-white">{shelf.expiring} expire today</span>}
-          </div>
-        </div>
+      {hint && <mesh ref={arrow} position={[0, 2.95, 0.2]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.16, 0.32, 16]} /><meshStandardMaterial color="#F5B82E" emissive="#F5B82E" emissiveIntensity={0.6} /></mesh>}
+      <Html position={[0, 2.38, 0]} center distanceFactor={9} zIndexRange={[20, 0]}>
+        <div className="pointer-events-none select-none whitespace-nowrap rounded-lg bg-white/95 px-2 py-0.5 text-[13px] font-extrabold text-ink shadow">{it.name.replace(/ \d.*$/, '')}{s.discount && <span className="ml-1 rounded bg-yellow px-1 text-[11px]">15% OFF</span>}</div>
+      </Html>
+      {/* the live count on the side of the unit; click to restock */}
+      <Html position={[1.32, 1.15, 0.25]} center distanceFactor={9} zIndexRange={[20, 0]}>
+        <button onClick={() => onPick(it.id)} title={`Restock ${it.name}`} className={`flex w-[62px] select-none flex-col items-center rounded-xl px-1.5 py-1 text-center shadow-lg ring-2 transition hover:scale-105 ${out ? 'bg-red text-white ring-white' : hint ? 'bg-yellow text-ink ring-white' : 'bg-white text-ink ring-green/40'}`}>
+          <span className="font-display text-[24px] font-black leading-none tabular-nums">{onShelf}</span>
+          <span className="text-[9.5px] font-bold leading-tight opacity-75">on shelf</span>
+          <span className="mt-0.5 w-full border-t border-current/20 pt-0.5 text-[10.5px] font-extrabold leading-tight tabular-nums">+{back} back</span>
+          {exp > 0 && <span className="mt-0.5 rounded bg-orange px-1 text-[9.5px] font-extrabold leading-tight text-white">{exp} exp. today</span>}
+        </button>
       </Html>
     </group>
   );
 }
 
-interface Walker { target: number; start: number; missed: boolean; look: Look }
-function Customers({ walkers, progress }: { walkers: Walker[]; progress: number }) {
-  return <>{walkers.map((w, i) => <Customer key={i} w={w} progress={progress} />)}</>;
-}
-function Customer({ w, progress }: { w: Walker; progress: number }) {
+function CustomerView({ c, live }: { c: Customer; live: LiveDay }) {
   const ref = useRef<Group>(null);
   const person = useRef<PersonHandle>(null);
-  useFrame(({ clock }: { clock: any }) => {
-    if (!ref.current) return;
-    const t = (progress - w.start) / 0.45; // each visit takes 45% of the day
-    ref.current.visible = t > 0 && t < 1;
-    if (!ref.current.visible) return;
-    const [sx, sz] = POS[w.target];
-    const shelf: [number, number] = [sx, sz + 0.95];
-    const path: [number, number][] = [DOOR, shelf, shelf, COUNTER, DOOR];
-    const seg = Math.min(path.length - 2, Math.floor(t * (path.length - 1)));
-    const f = t * (path.length - 1) - seg;
-    const [ax, az] = path[seg], [bx, bz] = path[seg + 1];
-    ref.current.position.set(ax + (bx - ax) * f, 0, az + (bz - az) * f);
-    const moving = ax !== bx || az !== bz;
-    if (moving) ref.current.rotation.y = Math.atan2(bx - ax, bz - az);
-    else ref.current.rotation.y = Math.PI; // face the shelf while taking a product
-    person.current?.pose(moving ? 'walk' : 'reach', clock.elapsedTime * 9 + w.start * 40);
+  const look = useMemo(() => lookFor(c.look), [c.look]);
+  const stride = useRef(0), last = useRef({ x: c.pos.x, z: c.pos.z });
+  useFrame(() => {
+    const g = ref.current;
+    if (!g) return;
+    g.visible = c.phase !== 'waiting' && c.phase !== 'gone';
+    if (!g.visible) return;
+    g.position.set(c.pos.x, 0, c.pos.z);
+    // turn smoothly towards the heading
+    let dh = c.heading - g.rotation.y;
+    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    g.rotation.y += dh * 0.25;
+    const moved = Math.hypot(c.pos.x - last.current.x, c.pos.z - last.current.z);
+    last.current = { x: c.pos.x, z: c.pos.z };
+    stride.current += moved * 5.5; // limbs swing with distance walked, so speed and stride always match
+    const walking = moved > 0.0005;
+    person.current?.pose(c.phase === 'picking' ? 'reach' : walking ? 'walk' : 'stand', c.phase === 'picking' ? live.time * 3 : stride.current);
   });
+  const holding = c.paid ? <PaperBag /> : c.got > 0 && c.phase !== 'picking' ? <group scale={0.85}><ProductModel id={c.item} /></group> : null;
+  const missed = c.got === 0 && c.phase === 'leaving';
   return (
     <group ref={ref} visible={false}>
-      <Person ref={person} look={w.look} />
-      {w.missed && (
-        // "!" above the head: the product this customer wanted was out of stock
+      <Person ref={person} look={look} holding={holding} />
+      {missed && (
         <group position={[0, 2.05, 0]}>
           <mesh position={[0, 0.1, 0]}><cylinderGeometry args={[0.035, 0.02, 0.2, 8]} /><meshStandardMaterial color="#D7372B" emissive="#D7372B" emissiveIntensity={0.8} /></mesh>
           <mesh position={[0, -0.06, 0]}><sphereGeometry args={[0.035, 8, 8]} /><meshStandardMaterial color="#D7372B" emissive="#D7372B" emissiveIntensity={0.8} /></mesh>
@@ -101,6 +94,55 @@ function Customer({ w, progress }: { w: Walker; progress: number }) {
       )}
     </group>
   );
+}
+
+function WorkerView({ live }: { live: LiveDay }) {
+  const ref = useRef<Group>(null);
+  const person = useRef<PersonHandle>(null);
+  const stride = useRef(0), last = useRef({ ...live.worker.pos });
+  useFrame(({ clock }: { clock: any }) => {
+    const w = live.worker, g = ref.current;
+    if (!g) return;
+    g.position.set(w.pos.x, 0, w.pos.z);
+    let dh = w.heading - g.rotation.y;
+    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    g.rotation.y += dh * 0.25;
+    const moved = Math.hypot(w.pos.x - last.current.x, w.pos.z - last.current.z);
+    last.current = { ...w.pos };
+    stride.current += moved * 5;
+    const mode = w.phase === 'toShelf' ? 'carry' : w.phase === 'stocking' ? 'reach' : moved > 0.0005 ? 'walk' : 'stand';
+    person.current?.pose(mode, w.phase === 'stocking' ? clock.elapsedTime * 4 : stride.current);
+  });
+  return (
+    <group ref={ref}>
+      <Person ref={person} look={WORKER_LOOK} apron carrying={live.worker.phase === 'toShelf' ? <Carton /> : undefined} />
+      <Html position={[0, 2.15, 0]} center distanceFactor={10} zIndexRange={[25, 0]}>
+        <div className="pointer-events-none select-none whitespace-nowrap rounded-full bg-green-dark px-2 py-0.5 text-[11px] font-extrabold text-yellow shadow">You · worker</div>
+      </Html>
+    </group>
+  );
+}
+
+function CashierView({ live }: { live: LiveDay }) {
+  const person = useRef<PersonHandle>(null);
+  useFrame(({ clock }) => person.current?.pose(live.serving !== null ? 'scan' : 'stand', clock.elapsedTime * 5));
+  const serving = live.serving !== null ? live.customers[live.serving] : null;
+  return (
+    <group>
+      <group position={[CASHIER.x, 0, CASHIER.z]}><Person ref={person} look={SHOPKEEPER} apron /></group>
+      {/* the item being scanned sits on the counter */}
+      {serving && <group position={[COUNTER.x + 0.35, 1.0, COUNTER.z]}><ProductModel id={serving.item} /></group>}
+    </group>
+  );
+}
+
+function Popups({ live }: { live: LiveDay }) {
+  const recent = live.events.filter((e) => live.time - e.t < 1.8);
+  return <>{recent.map((e) => (
+    <Html key={`${e.t}-${e.text}`} position={[e.at.x, e.kind === 'pay' ? 1.9 : 2.4, e.at.z]} center distanceFactor={10} zIndexRange={[30, 0]}>
+      <div className={`pointer-events-none animate-[floatUp_1.8s_ease-out_forwards] select-none whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-black shadow ${e.kind === 'pay' ? 'bg-green text-white' : e.kind === 'restock' ? 'bg-yellow text-ink' : 'bg-red text-white'}`}>{e.text}</div>
+    </Html>
+  ))}</>;
 }
 
 function Diyas() {
@@ -120,43 +162,63 @@ function Diyas() {
   );
 }
 
+/** Steps the simulation in fixed 50 ms slices, so speed changes never change the outcome. */
+function Driver({ live, running, speed, onEnd }: { live: LiveDay; running: boolean; speed: number; onEnd: () => void }) {
+  const acc = useRef(0), ended = useRef(false);
+  useEffect(() => { ended.current = false; acc.current = 0; }, [live]);
+  useFrame((_, dt) => {
+    if (!running || live.ended) {
+      if (running && live.ended && !ended.current) { ended.current = true; onEnd(); }
+      return;
+    }
+    acc.current += Math.min(dt, 0.1) * speed;
+    while (acc.current >= 0.05 && !live.ended) { stepLive(live, 0.05); acc.current -= 0.05; }
+  });
+  return null;
+}
 
-export default function Store3D({ shelves, log, progress, festive }: { shelves: Record<string, Shelf>; log: DayLog | null; progress: number; festive: boolean }) {
-  const walkers = useMemo<Walker[]>(() => {
-    if (!log) return [];
-    const list: Walker[] = [];
-    ITEMS.forEach((it, idx) => {
-      const visits = Math.min(4, Math.ceil((log.sold[it.id] + log.missed[it.id]) / 6));
-      for (let v = 0; v < visits; v++) list.push({ target: idx, start: 0, missed: log.missed[it.id] > 0 && v === 0, look: lookFor(idx * 5 + v + log.day * 11) });
-    });
-    list.sort((a, b) => ((a.target * 7 + (a.missed ? 1 : 0)) % 5) - ((b.target * 7 + (b.missed ? 1 : 0)) % 5));
-    list.forEach((w, i) => (w.start = (i / Math.max(1, list.length)) * 0.55));
-    return list;
-  }, [log]);
-
+export default function Store3D({ live, running, speed, festive, hint, onPick, onEnd }: { live: LiveDay; running: boolean; speed: number; festive: boolean; hint: string | null; onPick: (id: string) => void; onEnd: () => void }) {
+  // labels, counts and held items refresh five times a second; movement is updated every frame
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 200);
+    return () => clearInterval(id);
+  }, []);
   return (
     <Canvas camera={{ position: [0, 13.5, 12.5], fov: 44 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
+      <Driver live={live} running={running} speed={speed} onEnd={onEnd} />
       <color attach="background" args={[festive ? '#2A1B10' : '#0A3D2C']} />
       <ambientLight intensity={festive ? 0.9 : 1.15} />
       <hemisphereLight args={['#FFF8E8', '#C9B48E', festive ? 0.5 : 0.8]} />
       <directionalLight position={[4, 9, 6]} intensity={1.4} />
       <directionalLight position={[-6, 5, 2]} intensity={0.4} color="#FFE6B0" />
-      {/* floor, walls, counter, door */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0.6]}><planeGeometry args={[13, 9.4]} /><meshStandardMaterial color="#F1E6CF" /></mesh>
-      {Array.from({ length: 12 }, (_, i) => <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[-6 + i * 1.08 + 0.54, 0.002, 0.6]}><planeGeometry args={[0.02, 9.4]} /><meshStandardMaterial color="#E2D3B5" /></mesh>)}
+      {/* floor, walls */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0.85]}><planeGeometry args={[13, 9.9]} /><meshStandardMaterial color="#F1E6CF" /></mesh>
+      {Array.from({ length: 12 }, (_, i) => <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[-6 + i * 1.08 + 0.54, 0.002, 0.85]}><planeGeometry args={[0.02, 9.9]} /><meshStandardMaterial color="#E2D3B5" /></mesh>)}
       <mesh position={[0, 1.7, -3.55]}><boxGeometry args={[13, 3.4, 0.1]} /><meshStandardMaterial color="#FBF5E9" /></mesh>
-      <mesh position={[-6.5, 1.7, 0.6]}><boxGeometry args={[0.1, 3.4, 9.4]} /><meshStandardMaterial color="#F5ECDA" /></mesh>
-      <mesh position={[COUNTER[0], 0.5, COUNTER[1] - 0.6]}><boxGeometry args={[2.2, 1, 0.7]} /><meshStandardMaterial color="#0E6B47" /></mesh>
-      <mesh position={[COUNTER[0] + 0.5, 1.12, COUNTER[1] - 0.6]}><boxGeometry args={[0.5, 0.25, 0.4]} /><meshStandardMaterial color="#1E1B16" /></mesh>
-      <mesh position={[DOOR[0] - 0.3, 0.01, DOOR[1]]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[1.2, 0.9]} /><meshStandardMaterial color="#D7372B" /></mesh>
-      {ITEMS.map((it, i) => (
-        <ShelfUnit key={it.id} it={it} x={POS[i][0]} z={POS[i][1]} shelf={shelves[it.id]} sold={log?.sold[it.id] ?? 0} progress={log ? progress : 0} festive={festive} />
-      ))}
+      <mesh position={[-6.55, 1.7, 0.85]}><boxGeometry args={[0.1, 3.4, 9.9]} /><meshStandardMaterial color="#F5ECDA" /></mesh>
+      {/* stockroom doorway on the left wall, cartons inside */}
+      <mesh position={[-6.49, 1.05, STOCKROOM.z]}><boxGeometry args={[0.04, 2.1, 1.2]} /><meshStandardMaterial color="#3A2A1E" /></mesh>
+      <group position={[-6.4, 0.16, STOCKROOM.z - 0.3]}><Carton /></group>
+      <group position={[-6.4, 0.46, STOCKROOM.z - 0.3]}><Carton /></group>
+      <Html position={[-6.45, 2.35, STOCKROOM.z]} center distanceFactor={9} zIndexRange={[20, 0]}>
+        <div className="pointer-events-none select-none rounded bg-ink px-2 py-0.5 text-[11px] font-extrabold tracking-wider text-yellow">STOCKROOM</div>
+      </Html>
+      {/* entrance */}
+      <mesh position={[DOOR.x + 0.1, 0.01, DOOR.z - 0.15]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[1.2, 0.8]} /><meshStandardMaterial color="#D7372B" /></mesh>
+      {/* checkout counter: cashier behind it, register and scanner on top */}
+      <mesh position={[COUNTER.x, 0.48, COUNTER.z]}><boxGeometry args={[COUNTER.w, 0.96, COUNTER.d]} /><meshStandardMaterial color="#0E6B47" /></mesh>
+      <mesh position={[COUNTER.x, 0.97, COUNTER.z]}><boxGeometry args={[COUNTER.w + 0.06, 0.04, COUNTER.d + 0.06]} /><meshStandardMaterial color="#C89B63" /></mesh>
+      <mesh position={[COUNTER.x - 0.6, 1.14, COUNTER.z - 0.05]}><boxGeometry args={[0.5, 0.3, 0.38]} /><meshStandardMaterial color="#1E1B16" /></mesh>
+      <mesh position={[COUNTER.x - 0.6, 1.36, COUNTER.z - 0.12]} rotation={[-0.4, 0, 0]}><boxGeometry args={[0.4, 0.22, 0.03]} /><meshStandardMaterial color="#2F6FB0" emissive="#2F6FB0" emissiveIntensity={0.3} /></mesh>
+      <mesh position={[COUNTER.x + 0.35, 0.995, COUNTER.z]}><boxGeometry args={[0.36, 0.01, 0.26]} /><meshStandardMaterial color="#D7372B" emissive="#D7372B" emissiveIntensity={live.serving !== null ? 0.8 : 0.1} /></mesh>
+      {ITEMS.map((it, i) => <ShelfUnit key={it.id} it={it} index={i} live={live} hint={hint === it.id} onPick={onPick} />)}
       {festive && <Diyas />}
-      {/* the shopkeeper, behind the counter */}
-      <group position={[COUNTER[0] - 0.35, 0, COUNTER[1] - 1.35]}><Person look={SHOPKEEPER} apron idle /></group>
-      <Customers walkers={walkers} progress={log ? progress : -1} />
-      <OrbitControls enablePan={false} minDistance={11} maxDistance={24} minPolarAngle={0.45} maxPolarAngle={1.1} minAzimuthAngle={-0.7} maxAzimuthAngle={0.7} target={[0, 0.8, 0.4]} />
+      <CashierView live={live} />
+      <WorkerView live={live} />
+      {live.customers.map((c) => <CustomerView key={`${live.day}-${c.id}`} c={c} live={live} />)}
+      <Popups live={live} />
+      <OrbitControls enablePan={false} minDistance={9} maxDistance={24} minPolarAngle={0.45} maxPolarAngle={1.15} minAzimuthAngle={-0.8} maxAzimuthAngle={0.8} target={[0, 0.8, 0.9]} />
     </Canvas>
   );
 }

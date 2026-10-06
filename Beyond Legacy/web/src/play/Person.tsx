@@ -3,7 +3,7 @@
 // shelf, and stand at the counter. Variety comes from skin tone, height, hairstyle and clothing (shirt and trousers,
 // kurta, saree), chosen deterministically per customer.
 import { useFrame } from '@react-three/fiber';
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useRef, type ReactNode } from 'react';
 import type { Group } from 'three';
 
 export interface Look {
@@ -45,22 +45,34 @@ export function lookFor(n: number): Look {
 export const SHOPKEEPER: Look = { skin: '#A86B3C', top: '#F2F2EE', bottom: '#2C3E50', hair: '#1B1410', hairStyle: 'short', outfit: 'shirt', accent: '#0E6B47', height: 1, basket: false };
 
 export interface PersonHandle {
-  /** Pose for this frame: 'walk' swings limbs with the given phase; 'reach' raises an arm to a shelf; 'stand' idles. */
-  pose(mode: 'walk' | 'reach' | 'stand', phase: number): void;
+  /** Pose for this frame: 'walk' swings limbs; 'reach' raises an arm to a shelf; 'carry' holds a carton in front while
+   * walking; 'scan' moves the cashier's hands over the counter; 'stand' idles. */
+  pose(mode: PoseMode, phase: number): void;
 }
 
 const Mat = ({ c, rough = 0.75 }: { c: string; rough?: number }) => <meshStandardMaterial color={c} roughness={rough} />;
 
-export const Person = forwardRef<PersonHandle, { look: Look; apron?: boolean; idle?: boolean }>(function Person({ look, apron, idle }, ref) {
+export type PoseMode = 'walk' | 'reach' | 'stand' | 'carry' | 'carryStand' | 'scan';
+
+export const Person = forwardRef<PersonHandle, { look: Look; apron?: boolean; idle?: boolean; holding?: ReactNode; carrying?: ReactNode }>(function Person({ look, apron, idle, holding, carrying }, ref) {
   const legL = useRef<Group>(null), legR = useRef<Group>(null), armL = useRef<Group>(null), armR = useRef<Group>(null), body = useRef<Group>(null);
-  const pose = (mode: 'walk' | 'reach' | 'stand', phase: number) => {
+  const pose = (mode: PoseMode, phase: number) => {
     const s = Math.sin(phase);
-    const swing = mode === 'walk' ? 0.55 : 0;
+    const walking = mode === 'walk' || mode === 'carry';
+    const swing = walking ? (mode === 'carry' ? 0.45 : 0.55) : 0;
     if (legL.current) legL.current.rotation.x = s * swing;
     if (legR.current) legR.current.rotation.x = -s * swing;
-    if (armL.current) armL.current.rotation.x = -s * swing * 0.8;
-    if (armR.current) armR.current.rotation.x = mode === 'reach' ? -1.35 + Math.sin(phase * 0.5) * 0.12 : s * swing * 0.8;
-    if (body.current) body.current.position.y = mode === 'walk' ? Math.abs(Math.cos(phase)) * 0.035 : 0;
+    if (mode === 'carry' || mode === 'carryStand') {
+      if (armL.current) armL.current.rotation.x = -1.05;
+      if (armR.current) armR.current.rotation.x = -1.05;
+    } else if (mode === 'scan') {
+      if (armL.current) armL.current.rotation.x = -0.7 + Math.sin(phase * 0.8) * 0.12;
+      if (armR.current) armR.current.rotation.x = -0.95 + Math.sin(phase * 1.6) * 0.3;
+    } else {
+      if (armL.current) armL.current.rotation.x = -s * swing * 0.8;
+      if (armR.current) armR.current.rotation.x = mode === 'reach' ? -1.35 + Math.sin(phase * 0.5) * 0.12 : s * swing * 0.8;
+    }
+    if (body.current) body.current.position.y = walking ? Math.abs(Math.cos(phase)) * 0.03 : 0;
   };
   useImperativeHandle(ref, () => ({ pose }));
   // a standing figure (the shopkeeper) breathes and gestures slightly on its own
@@ -111,6 +123,7 @@ export const Person = forwardRef<PersonHandle, { look: Look; apron?: boolean; id
             <mesh position={[0, -0.14, 0]}><capsuleGeometry args={[0.07, 0.16, 4, 8]} /><Mat c={look.top} /></mesh>
             <mesh position={[0, -0.36, 0]}><capsuleGeometry args={[0.055, 0.24, 4, 8]} /><Mat c={look.outfit === 'shirt' ? look.skin : look.top} /></mesh>
             <mesh position={[0, -0.55, 0.01]}><sphereGeometry args={[0.058, 12, 10]} /><Mat c={look.skin} rough={0.6} /></mesh>
+            {right && holding && <group position={[0, -0.62, 0.07]}>{holding}</group>}
             {look.basket && !right && (
               <group position={[0, -0.66, 0.02]}>
                 <mesh position={[0, -0.08, 0]}><boxGeometry args={[0.26, 0.14, 0.18]} /><Mat c="#D7372B" rough={0.5} /></mesh>
@@ -119,6 +132,8 @@ export const Person = forwardRef<PersonHandle, { look: Look; apron?: boolean; id
             )}
           </group>
         ))}
+        {/* a carton carried in front with both hands */}
+        {carrying && <group position={[0, 1.02, 0.36]}>{carrying}</group>}
         {/* neck and head */}
         <mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.055, 0.065, 0.12, 12]} /><Mat c={look.skin} rough={0.6} /></mesh>
         <group position={[0, 1.66, 0]}>

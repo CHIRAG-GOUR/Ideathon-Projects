@@ -39,7 +39,7 @@ export const ITEMS: SimItem[] = [
 ];
 
 // ---------------------------------------------------------------- seeded randomness (same week both rounds)
-function rng(seed: number) {
+export function rng(seed: number) {
   return () => {
     seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -67,24 +67,42 @@ export function wanted(it: SimItem, d: number, discounted: boolean) {
 
 // ---------------------------------------------------------------- state
 export interface Batch { qty: number; expiresDay: number | null }
-export interface ItemState { batches: Batch[]; sales: Record<string, number>; discount: boolean }
+/** Stock is split between the shelf (what customers can reach) and the stockroom (deliveries land here). */
+export interface ItemState { shelf: Batch[]; back: Batch[]; sales: Record<string, number>; discount: boolean }
 export interface DayLog { day: number; sold: Record<string, number>; missed: Record<string, number>; wasted: Record<string, number>; ordered: Record<string, number>; discount: Record<string, boolean> }
 export interface Totals { revenue: number; profit: number; lostSales: number; wastedValue: number; stuckValue: number; missedUnits: number; wastedUnits: number; spent: number }
 export interface SimState { day: number; items: Record<string, ItemState>; log: DayLog[]; done: boolean }
 
-export const stockOf = (s: ItemState) => s.batches.reduce((n, b) => n + b.qty, 0);
+export const units = (bs: Batch[]) => bs.reduce((n, b) => n + b.qty, 0);
+export const stockOf = (s: ItemState) => units(s.shelf) + units(s.back);
+export const batchesOf = (s: ItemState) => [...s.shelf, ...s.back];
+/** Units a shelf holds when full. */
+export const SHELF_CAP: Record<string, number> = { milk: 24, bread: 12, paneer: 12, sweets: 12, oil: 12, atta: 9, namkeen: 18, biscuits: 24 };
+/** Units that expire at the end of day d (they must sell today). */
+export const expiringOn = (bs: Batch[], d: number) => bs.filter((b) => b.expiresDay !== null && b.expiresDay <= d).reduce((n, b) => n + b.qty, 0);
 export const dateOf = (d: number) => addDays(START_DATE, d);
 
 export function newWeek(): SimState {
   return {
     day: 0, done: false, log: [],
-    items: Object.fromEntries(ITEMS.map((it) => [it.id, { batches: it.start.map((b) => ({ ...b })), sales: { ...HISTORY[it.id] }, discount: false }])),
+    items: Object.fromEntries(ITEMS.map((it) => {
+      // Monday morning: the shelf is full, the rest waits in the stockroom
+      let room = SHELF_CAP[it.id];
+      const shelf: Batch[] = [], back: Batch[] = [];
+      for (const b of it.start) {
+        const onShelf = Math.min(room, b.qty);
+        if (onShelf) shelf.push({ qty: onShelf, expiresDay: b.expiresDay });
+        if (b.qty > onShelf) back.push({ qty: b.qty - onShelf, expiresDay: b.expiresDay });
+        room -= onShelf;
+      }
+      return [it.id, { shelf, back, sales: { ...HISTORY[it.id] }, discount: false }];
+    })),
   };
 }
 
 /** The engine's view of a simulated product (same Product shape the app stores). */
 export function asProduct(it: SimItem, s: ItemState): Product {
-  const exp = s.batches.filter((b) => b.qty > 0 && b.expiresDay !== null).map((b) => b.expiresDay as number);
+  const exp = batchesOf(s).filter((b) => b.qty > 0 && b.expiresDay !== null).map((b) => b.expiresDay as number);
   return {
     id: it.id, name: it.name, category: it.category, stock: stockOf(s), unitPrice: it.price,
     expiryDate: exp.length ? dateOf(Math.min(...exp)) : null, safetyStock: it.safety, caseSize: it.caseSize,
@@ -152,40 +170,6 @@ export function habitPlan(state: SimState): Plan {
     p.discount[it.id] = false;
   }
   return p;
-}
-
-/** Morning delivery → the day's customers buy (oldest stock first) → end of day, expired stock is thrown away. */
-export function playDay(prev: SimState, plan: Plan): SimState {
-  const s: SimState = structuredClone(prev);
-  const d = s.day;
-  const log: DayLog = { day: d, sold: {}, missed: {}, wasted: {}, ordered: {}, discount: {} };
-  for (const it of ITEMS) {
-    const st = s.items[it.id];
-    const q = Math.max(0, Math.round(plan.order[it.id] ?? 0));
-    if (q > 0) st.batches.push({ qty: q, expiresDay: it.shelfLife === null ? null : d + it.shelfLife - 1 });
-    st.batches.sort((a, b) => (a.expiresDay ?? 99) - (b.expiresDay ?? 99));
-    st.discount = !!plan.discount[it.id];
-    log.ordered[it.id] = q;
-    log.discount[it.id] = st.discount;
-    let want = wanted(it, d, st.discount);
-    let sold = 0;
-    for (const b of st.batches) {
-      const take = Math.min(b.qty, want);
-      b.qty -= take;
-      want -= take;
-      sold += take;
-    }
-    log.sold[it.id] = sold;
-    log.missed[it.id] = want;
-    st.sales[dateOf(d)] = sold;
-    const waste = st.batches.filter((b) => b.expiresDay !== null && b.expiresDay <= d).reduce((n, b) => n + b.qty, 0);
-    log.wasted[it.id] = waste;
-    st.batches = st.batches.filter((b) => b.qty > 0 && !(b.expiresDay !== null && b.expiresDay <= d));
-  }
-  s.log.push(log);
-  s.day = d + 1;
-  s.done = s.day >= DAYS.length;
-  return s;
 }
 
 export function totals(s: SimState): Totals {

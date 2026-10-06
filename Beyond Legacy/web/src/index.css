@@ -56,3 +56,6 @@
 
 @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(2.2); opacity: 0; } }
 .pulse-ring { animation: pulse-ring 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
+
+/* Shelf Rush floating labels (+₹, restocked, out of stock) */
+@keyframes floatUp { from { transform: translateY(0); opacity: 1 } to { transform: translateY(-28px); opacity: 0 } }

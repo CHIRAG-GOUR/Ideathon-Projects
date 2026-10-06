@@ -34,11 +34,16 @@ Add product · Record sale · Sign in / create account / store setup / password 
 
 ## Presentation demo: Shelf Rush (Settings → Presentation tools)
 
-A separate 3D simulation for pitches, kept out of the main navigation: play one festival week in a kirana store by
-habit, then the same week (same seeded customers) with SmartShelf's engine suggesting each morning's moves, and compare
-the money. With the built-in "auto-play" policies SmartShelf loses ₹882 to stock-outs + wastage vs ₹5,146 by habit
-(₹4,264 saved). Unit-tested in `web/test/play.test.ts`. Figures are illustrative, not field data. Three.js loads only
-when the demo is opened. Also includes **Beat the AI**, a 10-second decision quiz on the demo products.
+A separate 3D store simulation for pitches, kept out of the main navigation. One festival week in a kirana store,
+played twice with the same seeded customers: by habit, then with SmartShelf suggesting each morning's order and which
+shelf to restock next. Each day runs live (9 AM–9 PM in 90 s at 1×; 2×, 4× and "finish day" available): customers walk
+the aisles on a path graph, keep their distance, take the product they came for, carry it, queue at the counter and pay.
+**You are the worker**: deliveries land in the stockroom, and you click a shelf (or its live count) to carry a carton
+over and restock it — oldest date to the front so it sells before it expires. With the built-in auto-play policies
+(habit: refill only when empty, newest cartons in front; SmartShelf: refill early, rotate by date) the week loses
+₹9,348 to stock-outs + wastage by habit vs ₹2,884 with SmartShelf. Unit-tested in `web/test/play.test.ts`; figures are
+illustrative, not field data. Three.js loads only when the demo is opened. Also includes **Beat the AI**, a 10-second
+decision quiz on the demo products.
 
 ## Repository layout
 
@@ -48,7 +53,7 @@ beyond-legacy/
 │  ├─ src/engine/       deterministic recommendation engine (pure TS, unit-tested)
 │  ├─ src/data/         Repository interface → Firestore (cloud.ts) or on-device (local.ts)
 │  ├─ src/art/          hand-built SVG product + retail-scene illustrations, isometric store (IsoStore.tsx)
-│  ├─ src/play/         Shelf Rush demo (simulation sim.ts + 3D scene + quiz)
+│  ├─ src/play/         Shelf Rush demo (week sim.ts, live day live.ts, 3D scene, product models, quiz)
 │  ├─ src/screens/      pages;  src/ui/  design-system components;  src/charts/  SVG charts
 │  └─ test/             engine unit tests (vitest)
 ├─ android/             native Android shell (Java, no Gradle) that bundles web/dist → APK + AAB
