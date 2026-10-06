@@ -19,10 +19,11 @@ const Settings = lazy(() => import('./screens/Settings'));
 const Play = lazy(() => import('./play/Play'));
 
 const NAV = [
-  { to: '/', label: 'Overview', icon: IconOverview, IconPlay, end: true },
+  { to: '/', label: 'Overview', icon: IconOverview, end: true },
   { to: '/next-moves', label: 'Next Moves', icon: IconNextMove },
   { to: '/inventory', label: 'Inventory', icon: IconInventory },
   { to: '/insights', label: 'Insights', icon: IconInsights },
+  { to: '/play', label: 'Simulator', icon: IconPlay },
   { to: '/store', label: 'Store', icon: IconStore, secondary: true },
   { to: '/settings', label: 'Settings', icon: IconSettings, secondary: true },
 ];
