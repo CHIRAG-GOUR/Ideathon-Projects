@@ -41,7 +41,7 @@ the aisles on a path graph, keep their distance, take the product they came for,
 **You are the worker**: deliveries land in the stockroom, and you click a shelf (or its live count) to carry a carton
 over and restock it — oldest date to the front so it sells before it expires. With the built-in auto-play policies
 (habit: refill only when empty, newest cartons in front; SmartShelf: refill early, rotate by date) the week loses
-₹9,348 to stock-outs + wastage by habit vs ₹2,884 with SmartShelf. Unit-tested in `web/test/play.test.ts`; figures are
+₹9,348 to stock-outs + wastage by habit vs ₹3,514 with SmartShelf. Unit-tested in `web/test/play.test.ts`; figures are
 illustrative, not field data. Three.js loads only when the demo is opened. Also includes **Beat the AI**, a 10-second
 decision quiz on the demo products.
 

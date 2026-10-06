@@ -208,7 +208,10 @@ export function stepLive(L: LiveDay, dt: number) {
   for (const c of L.customers) {
     switch (c.phase) {
       case 'waiting':
-        if (L.time >= c.arrive) { c.phase = 'toShelf'; c.pos = { ...DOOR }; c.path = route('door', nodeOfPick(c.item)); }
+        // people come in one at a time: wait outside while someone is standing in the doorway
+        if (L.time >= c.arrive && !L.customers.some((o) => o !== c && o.phase !== 'waiting' && o.phase !== 'gone' && dist(o.pos, DOOR) < 0.75)) {
+          c.phase = 'toShelf'; c.pos = { ...DOOR }; c.path = route('door', nodeOfPick(c.item));
+        }
         break;
       case 'toShelf':
         if (moveAlong(c, WALK, dt)) { c.phase = 'picking'; c.timer = PICK_T; c.heading = Math.PI; } // face the shelf
@@ -249,16 +252,29 @@ export function stepLive(L: LiveDay, dt: number) {
         break;
     }
   }
-  // keep personal space: walking people nudge each other apart, never into a shelf or the counter
-  const walking = L.customers.filter((c) => c.phase === 'toShelf' || c.phase === 'toQueue' || c.phase === 'leaving' || c.phase === 'picking');
+  // keep personal space: people step gently sideways around each other (never forwards or backwards, so walking stays
+  // smooth and nobody can block anyone), and never into a shelf or the counter
+  const walking = L.customers.filter((c) => c.phase === 'toShelf' || c.phase === 'toQueue' || c.phase === 'leaving');
+  const sidestep = (a: Customer, nx: number, nz: number, amount: number) => {
+    const t = a.path[0];
+    if (!t) return;
+    const td = dist(a.pos, t);
+    if (td < 0.35) return; // close to a turn or the destination: just walk there
+    const ux = (t.x - a.pos.x) / td, uz = (t.z - a.pos.z) / td;
+    const along = nx * ux + nz * uz;
+    let lx = nx - along * ux, lz = nz - along * uz;
+    const ll = Math.hypot(lx, lz);
+    if (ll < 1e-3) { lx = -uz; lz = ux; } else { lx /= ll; lz /= ll; } // head-on: both step to their own right
+    const p = { x: a.pos.x + lx * amount, z: a.pos.z + lz * amount };
+    if (!blocked(p)) a.pos = p;
+  };
   for (let i = 0; i < walking.length; i++) for (let j = i + 1; j < walking.length; j++) {
     const a = walking[i], b = walking[j], d = dist(a.pos, b.pos);
-    if (d > 0 && d < RADIUS * 2) {
-      // the push is always weaker than a walking step, so people keep their distance but can never block each other
-      const push = Math.min(((RADIUS * 2 - d) / 2) * 0.35, WALK * dt * 0.45), nx = (a.pos.x - b.pos.x) / d, nz = (a.pos.z - b.pos.z) / d;
-      const pa = { x: a.pos.x + nx * push, z: a.pos.z + nz * push }, pb = { x: b.pos.x - nx * push, z: b.pos.z - nz * push };
-      if (a.phase !== 'picking' && !blocked(pa)) a.pos = pa;
-      if (b.phase !== 'picking' && !blocked(pb)) b.pos = pb;
+    if (d < RADIUS * 2) {
+      const amount = Math.min(RADIUS * 2 - d, 0.5 * dt); // at most half a metre per second, sideways
+      const nx = d > 1e-4 ? (a.pos.x - b.pos.x) / d : 1, nz = d > 1e-4 ? (a.pos.z - b.pos.z) / d : 0;
+      sidestep(a, nx, nz, amount / 2);
+      sidestep(b, -nx, -nz, amount / 2);
     }
   }
   // worker

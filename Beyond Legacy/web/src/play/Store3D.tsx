@@ -20,7 +20,7 @@ function ShelfUnit({ it, index, live, hint, onPick }: { it: SimItem; index: numb
   const perLevel = Math.ceil(cap / 3), gap = 2.0 / perLevel;
   const out = onShelf === 0;
   const arrow = useRef<Mesh>(null);
-  useFrame(({ clock }: { clock: any }) => { if (arrow.current) arrow.current.position.y = 2.95 + Math.sin(clock.elapsedTime * 3) * 0.08; });
+  useFrame(({ clock }) => { if (arrow.current) arrow.current.position.y = 2.95 + Math.sin(clock.elapsedTime * 3) * 0.08; });
   return (
     <group position={[x, 0, z]}>
       <group
@@ -60,25 +60,37 @@ function ShelfUnit({ it, index, live, hint, onPick }: { it: SimItem; index: numb
   );
 }
 
+/**
+ * Smoothly follows a simulated position: eases towards it (no stepping or jitter), faces the direction actually
+ * walked, and turns to the given heading when standing (at a shelf, in the queue). Returns the distance moved.
+ */
+function follow(g: Group, target: { x: number; z: number }, heading: number, dt: number) {
+  const k = 1 - Math.exp(-14 * dt);
+  const dx = (target.x - g.position.x) * k, dz = (target.z - g.position.z) * k;
+  g.position.x += dx; g.position.z += dz;
+  const moved = Math.hypot(dx, dz);
+  const face = moved / Math.max(dt, 1e-3) > 0.2 ? Math.atan2(dx, dz) : heading;
+  let dh = face - g.rotation.y;
+  dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+  g.rotation.y += dh * (1 - Math.exp(-8 * dt));
+  return moved;
+}
+
 function CustomerView({ c, live }: { c: Customer; live: LiveDay }) {
   const ref = useRef<Group>(null);
   const person = useRef<PersonHandle>(null);
   const look = useMemo(() => lookFor(c.look), [c.look]);
-  const stride = useRef(0), last = useRef({ x: c.pos.x, z: c.pos.z });
-  useFrame(() => {
+  const stride = useRef(0), shown = useRef(false);
+  useFrame((_: any, dt) => {
     const g = ref.current;
     if (!g) return;
-    g.visible = c.phase !== 'waiting' && c.phase !== 'gone';
-    if (!g.visible) return;
-    g.position.set(c.pos.x, 0, c.pos.z);
-    // turn smoothly towards the heading
-    let dh = c.heading - g.rotation.y;
-    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
-    g.rotation.y += dh * 0.25;
-    const moved = Math.hypot(c.pos.x - last.current.x, c.pos.z - last.current.z);
-    last.current = { x: c.pos.x, z: c.pos.z };
-    stride.current += moved * 5.5; // limbs swing with distance walked, so speed and stride always match
-    const walking = moved > 0.0005;
+    const visible = c.phase !== 'waiting' && c.phase !== 'gone';
+    g.visible = visible;
+    if (!visible) { shown.current = false; return; }
+    if (!shown.current) { g.position.set(c.pos.x, 0, c.pos.z); g.rotation.y = c.heading; shown.current = true; }
+    const moved = follow(g, c.pos, c.heading, dt);
+    stride.current += moved * 5.5; // limbs swing with distance actually walked on screen
+    const walking = moved / Math.max(dt, 1e-3) > 0.2;
     person.current?.pose(c.phase === 'picking' ? 'reach' : walking ? 'walk' : 'stand', c.phase === 'picking' ? live.time * 3 : stride.current);
   });
   const holding = c.paid ? <PaperBag /> : c.got > 0 && c.phase !== 'picking' ? <group scale={0.85}><ProductModel id={c.item} /></group> : null;
@@ -99,18 +111,14 @@ function CustomerView({ c, live }: { c: Customer; live: LiveDay }) {
 function WorkerView({ live }: { live: LiveDay }) {
   const ref = useRef<Group>(null);
   const person = useRef<PersonHandle>(null);
-  const stride = useRef(0), last = useRef({ ...live.worker.pos });
-  useFrame(({ clock }: { clock: any }) => {
+  const stride = useRef(0);
+  useFrame(({ clock }: { clock: any }, dt) => {
     const w = live.worker, g = ref.current;
     if (!g) return;
-    g.position.set(w.pos.x, 0, w.pos.z);
-    let dh = w.heading - g.rotation.y;
-    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
-    g.rotation.y += dh * 0.25;
-    const moved = Math.hypot(w.pos.x - last.current.x, w.pos.z - last.current.z);
-    last.current = { ...w.pos };
+    const moved = follow(g, w.pos, w.heading, dt);
     stride.current += moved * 5;
-    const mode = w.phase === 'toShelf' ? 'carry' : w.phase === 'stocking' ? 'reach' : moved > 0.0005 ? 'walk' : 'stand';
+    const walking = moved / Math.max(dt, 1e-3) > 0.2;
+    const mode = w.phase === 'toShelf' ? (walking ? 'carry' : 'carryStand') : w.phase === 'stocking' ? 'reach' : walking ? 'walk' : 'stand';
     person.current?.pose(mode, w.phase === 'stocking' ? clock.elapsedTime * 4 : stride.current);
   });
   return (
@@ -148,7 +156,7 @@ function Popups({ live }: { live: LiveDay }) {
 function Diyas() {
   const lights = useMemo(() => Array.from({ length: 22 }, (_, i) => -5.6 + i * 0.53), []);
   const g = useRef<Group>(null);
-  useFrame(({ clock }: { clock: any }) => g.current?.children.forEach((c: any, i: number) => ((c as Mesh).scale.setScalar(0.85 + Math.sin(clock.elapsedTime * 4 + i) * 0.15))));
+  useFrame(({ clock }) => g.current?.children.forEach((c, i) => ((c as Mesh).scale.setScalar(0.85 + Math.sin(clock.elapsedTime * 4 + i) * 0.15))));
   return (
     <group ref={g}>
       {lights.map((x, i) => (
@@ -162,17 +170,18 @@ function Diyas() {
   );
 }
 
-/** Steps the simulation in fixed 50 ms slices, so speed changes never change the outcome. */
+/** Steps the simulation in small fixed slices (120 per second of store time), several per frame, so motion is continuous. */
+const STEP = 1 / 120;
 function Driver({ live, running, speed, onEnd }: { live: LiveDay; running: boolean; speed: number; onEnd: () => void }) {
   const acc = useRef(0), ended = useRef(false);
   useEffect(() => { ended.current = false; acc.current = 0; }, [live]);
-  useFrame((_, dt) => {
+  useFrame((_: any, dt) => {
     if (!running || live.ended) {
       if (running && live.ended && !ended.current) { ended.current = true; onEnd(); }
       return;
     }
     acc.current += Math.min(dt, 0.1) * speed;
-    while (acc.current >= 0.05 && !live.ended) { stepLive(live, 0.05); acc.current -= 0.05; }
+    while (acc.current >= STEP && !live.ended) { stepLive(live, STEP); acc.current -= STEP; }
   });
   return null;
 }
