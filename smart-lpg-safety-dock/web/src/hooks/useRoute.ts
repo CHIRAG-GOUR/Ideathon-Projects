@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-export type Route = 'dashboard' | 'simulation' | 'compare' | 'dock' | 'telemetry' | 'events' | 'present' | 'settings';
-export const ROUTES: Route[] = ['dashboard', 'simulation', 'compare', 'dock', 'telemetry', 'events', 'present', 'settings'];
+export type Route = 'dashboard' | 'simulation' | 'compare' | 'dock' | 'telemetry' | 'events' | 'present' | 'settings' | 'privacy' | 'terms';
+export const ROUTES: Route[] = ['dashboard', 'simulation', 'compare', 'dock', 'telemetry', 'events', 'present', 'settings', 'privacy', 'terms'];
 
 function parse() {
   const [p, q] = location.hash.replace(/^#\/?/, '').split('?');

@@ -17,6 +17,8 @@ const Insights = lazy(() => import('./screens/Insights'));
 const StorePage = lazy(() => import('./screens/StorePage'));
 const Settings = lazy(() => import('./screens/Settings'));
 const Play = lazy(() => import('./play/Play'));
+const PrivacyPolicy = lazy(() => import('./screens/PrivacyPolicy'));
+const TermsAndConditions = lazy(() => import('./screens/TermsAndConditions'));
 
 const NAV = [
   { to: '/', label: 'Overview', icon: IconOverview, end: true },
@@ -191,6 +193,8 @@ function Shell() {
                   <Route path="/store" element={<StorePage />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/play" element={<Play />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsAndConditions />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>

@@ -115,6 +115,20 @@ export default function Settings() {
         </Card>
 
         <Card className="p-5 lg:col-span-2">
+          <SectionTitle title="Legal & Compliance" />
+          <div className="flex flex-wrap items-center justify-between gap-3 text-[13.5px]">
+            <div>
+              <p className="font-semibold text-ink">Privacy Policy & Terms of Service</p>
+              <p className="text-ink-muted">Read our data governance, inventory confidentiality, and platform service terms.</p>
+            </div>
+            <div className="flex gap-2">
+              <Link to="/privacy" className="inline-flex h-9 items-center rounded-xl bg-canvas px-3.5 text-[13px] font-bold text-ink ring-1 ring-line hover:bg-cream-deep">Privacy Policy</Link>
+              <Link to="/terms" className="inline-flex h-9 items-center rounded-xl bg-canvas px-3.5 text-[13px] font-bold text-ink ring-1 ring-line hover:bg-cream-deep">Terms of Service</Link>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 lg:col-span-2">
           <p className="font-display text-[15px] font-bold text-ink">SmartShelf AI <span className="font-sans text-[13px] font-medium text-ink-muted">· by Beyond Legacy · version 1.0.0</span></p>
           <p className="mt-0.5 text-[13.5px] text-ink-muted">Predict what comes next. Act before it becomes a problem.</p>
         </Card>

@@ -17,6 +17,8 @@ const Telemetry = lazy(() => import('./screens/Telemetry'));
 const Events = lazy(() => import('./screens/Events'));
 const Presentation = lazy(() => import('./screens/Presentation'));
 const Settings = lazy(() => import('./screens/Settings'));
+const PrivacyPolicy = lazy(() => import('./screens/PrivacyPolicy'));
+const TermsAndConditions = lazy(() => import('./screens/TermsAndConditions'));
 
 const NAV: { r: Route; label: string; icon: ReactNode; mobile?: boolean }[] = [
   { r: 'dashboard', label: 'Dashboard', icon: <IconDashboard />, mobile: true },
@@ -45,6 +47,8 @@ export function App() {
       case 'events': return <Events />;
       case 'present': return <Presentation params={params} />;
       case 'settings': return <Settings />;
+      case 'privacy': return <PrivacyPolicy />;
+      case 'terms': return <TermsAndConditions />;
       default: return <Dashboard />;
     }
   })();
@@ -69,6 +73,11 @@ export function App() {
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-graphite-muted">Live dock · simulation</p>
             <Status tone={safetyTone(s.safety)} pulse={s.alarm !== 'none'}>{SAFETY_TEXT[s.safety]}</Status>
             <p className="text-[11px] text-graphite-muted">{auth.user ? `Signed in · ${auth.user.email ?? 'account'}` : 'DEMO MODE · not signed in'}</p>
+            <div className="flex items-center gap-2 border-t border-line/60 pt-2 text-[11px] font-bold text-graphite-muted">
+              <button onClick={() => go('privacy')} className="hover:text-lpg-700">Privacy</button>
+              <span>·</span>
+              <button onClick={() => go('terms')} className="hover:text-lpg-700">Terms</button>
+            </div>
           </div>
         </aside>
       )}
