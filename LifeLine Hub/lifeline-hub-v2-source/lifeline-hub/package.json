@@ -1,0 +1,20 @@
+{
+  "name": "lifeline-hub",
+  "private": true,
+  "description": "LifeLine Hub \u2014 futuristic emergency care: SOS Push, Health Vault, Geo-Radar and AI Guidance, from incident to care",
+  "scripts": {
+    "test": "npm --prefix ../safety-core test",
+    "build:web": "npm --prefix web run build",
+    "build:functions": "npm --prefix functions run build",
+    "build:apk": "npm run build:web && bash ../safety-core/android/build-app.sh .",
+    "firebase:setup": "bash ../safety-core/tools/firebase-setup.sh lifeline-hub-app \"LifeLine Hub\" lifelinehub LIFELINE_SMS",
+    "deploy": "npm run build:web && npm run build:functions && npx -y firebase-tools@latest deploy --only hosting,functions:lifeline,firestore:lifelinehub --project lifeline-hub-app",
+    "test:e2e": "bash ../safety-core/tests/run-e2e.sh lifeline-hub && npm --prefix functions run build && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u JAVA_TOOL_OPTIONS npx -y firebase-tools emulators:exec --project demo-lifelinehub --only auth,firestore,functions,hosting \"node tests/e2e-lifeline.mjs\""
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

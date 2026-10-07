@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", "lib": ["dom", "dom.iterable", "esnext"], "allowJs": false, "skipLibCheck": true, "strict": true, "noEmit": true,
+    "esModuleInterop": true, "module": "esnext", "moduleResolution": "bundler", "resolveJsonModule": true, "isolatedModules": true,
+    "jsx": "preserve", "incremental": true, "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"], "@core/*": ["../../safety-core/web/src/*"], "@shared/*": ["../../safety-core/shared/src/*"],
+      "react": ["./node_modules/@types/react"], "framer-motion": ["./node_modules/framer-motion"], "firebase/*": ["./node_modules/firebase/*"],
+      "leaflet": ["./node_modules/@types/leaflet"], "zod": ["./node_modules/zod"]
+    }
+  },
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", "../../safety-core/web/src/**/*.ts", "../../safety-core/web/src/**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "out"]
+}

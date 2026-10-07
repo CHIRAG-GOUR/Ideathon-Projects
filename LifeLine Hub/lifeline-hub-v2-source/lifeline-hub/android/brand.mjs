@@ -1,0 +1,8 @@
+// LifeLine Hub brand marks (SVG): a hospital-green tile, a heartbeat running into a location pin with an
+// ambulance-red heart — rendered to PNGs by safety-core/tools/icons.mjs. Same artwork as web/src/ui/brand.tsx.
+const defs = '<defs><linearGradient id="llg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#27A36C"/><stop offset="1" stop-color="#075A39"/></linearGradient></defs>';
+const mark = (c) => `<path d="M9 36h9l4-9.5 6 19 6-15 3.5 5.5H42" fill="none" stroke="${c}" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M48 12.5a9.5 9.5 0 0 1 9.5 9.5c0 7-9.5 16-9.5 16s-9.5-9-9.5-16a9.5 9.5 0 0 1 9.5-9.5z" fill="${c}"/>`;
+const heart = '<path d="M48 18.6c1.2-1.6 4.4-1.3 4.4 1.4 0 2.2-2.7 4.1-4.4 5.3-1.7-1.2-4.4-3.1-4.4-5.3 0-2.7 3.2-3 4.4-1.4z" fill="#DA1E2C"/>';
+export const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${defs}<rect width="64" height="64" rx="18" fill="url(#llg)"/>${mark('#FFFFFF')}${heart}</svg>`;
+export const foreground = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">${defs}<g transform="translate(22 22)">${mark('#FFFFFF')}${heart}</g></svg>`;
+export const status = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M9 36h9l4-9.5 6 19 6-15 3.5 5.5H42" fill="none" stroke="#fff" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M48 12.5a9.5 9.5 0 0 1 9.5 9.5c0 7-9.5 16-9.5 16s-9.5-9-9.5-16a9.5 9.5 0 0 1 9.5-9.5z" fill="#fff"/></svg>`;
