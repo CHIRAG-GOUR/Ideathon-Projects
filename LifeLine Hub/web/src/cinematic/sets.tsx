@@ -111,23 +111,67 @@ function riderPose(t: number, variant: 'helmet' | 'bare' | 'o2'): PersonState {
   return { pos: r.pos, quat: r.quat, pose, visible: vis, prop, face, injury: t > WORLD_INFO().tImpact + 0.6 ? 1 : 0 };
 }
 
-/** Phone in hand: dark until SOS, then the LifeLine alert screen (coral) pulses. */
+/** Where Arjun's phone is and which way its screen faces (world space), for the over-the-phone POV shot. */
+export const PHONE_VIEW = { p: new THREE.Vector3(), n: new THREE.Vector3(0, 1, 0), up: new THREE.Vector3(0, 0, 1), live: false };
+const _q = new THREE.Quaternion();
+/** Phone in hand, showing the LifeLine app: the SOS button (pulsing) until he triggers it, then the SOS-active checklist. */
 function LivePhone() {
   const clock = useClock();
-  const m = useRef<THREE.MeshStandardMaterial>(null);
+  const { canvas, tex } = useMemo(() => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 512;
+    const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4;
+    return { canvas: c, tex: tx };
+  }, []);
+  const last = useRef('');
+  const dbg = useRef<THREE.Group>(null); // the phone itself (its world pose feeds PHONE_VIEW)
   useFrame(() => {
-    if (!m.current) return;
-    const on = clock.t >= T_SOS;
-    m.current.color.set(on ? '#c8203a' : '#0d1c33');
-    m.current.emissive.set(on ? '#ff3346' : '#2a6fd6');
-    m.current.emissiveIntensity = on ? 1.6 + 0.8 * Math.sin(clock.t * 6) : 0.5;
+    const t = clock.t;
+    if (dbg.current) { dbg.current.getWorldPosition(PHONE_VIEW.p); dbg.current.getWorldQuaternion(_q); PHONE_VIEW.n.set(0, 0, 1).applyQuaternion(_q); PHONE_VIEW.up.set(0, 1, 0).applyQuaternion(_q); PHONE_VIEW.live = dbg.current.visible && !!dbg.current.parent?.visible; }
+    const key = t < T_SOS ? `i${Math.floor(t * 5) % 5}` : `a${Math.min(8, Math.floor((t - T_SOS) * 1.6))}`;
+    if (key === last.current) return;
+    last.current = key;
+    drawPhone(canvas.getContext('2d')!, t);
+    tex.needsUpdate = true;
   });
   return (
-    <group>
+    <group ref={dbg}>
       <RoundedBox args={[0.075, 0.155, 0.009]} radius={0.008} material={mat('#16181d', { rough: 0.3, metal: 0.4 })} />
-      <mesh position={[0, 0, 0.0052]} scale={[0.067, 0.145, 1]}><planeGeometry /><meshStandardMaterial ref={m} color="#0d1c33" emissive="#2a6fd6" emissiveIntensity={0.5} /></mesh>
+      <mesh position={[0, 0, 0.0052]} scale={[0.067, 0.145, 1]}><planeGeometry /><meshBasicMaterial map={tex} toneMapped={false} color="#d8d8d8" /></mesh>
     </group>
   );
+}
+function drawPhone(g: CanvasRenderingContext2D, t: number) {
+  const W = 256, H = 512, on = t >= T_SOS;
+  g.fillStyle = '#f4f8f6'; g.fillRect(0, 0, W, H);
+  // status + app bar
+  g.fillStyle = '#0b8a57'; g.fillRect(0, 0, W, 64);
+  g.fillStyle = '#ffffff'; g.font = '600 13px sans-serif'; g.fillText('9:41', 14, 20);
+  g.font = '700 22px sans-serif'; g.fillText('LifeLine Hub', 14, 52);
+  if (!on) {
+    const p = (t * 1.2) % 1;
+    g.fillStyle = '#5b6b66'; g.font = '600 15px sans-serif'; g.textAlign = 'center'; g.fillText('Emergency? Hold for SOS', W / 2, 118);
+    g.strokeStyle = `rgba(218,30,44,${0.45 * (1 - p)})`; g.lineWidth = 10; g.beginPath(); g.arc(W / 2, 270, 86 + p * 30, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = '#da1e2c'; g.beginPath(); g.arc(W / 2, 270, 82, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffffff'; g.font = '800 44px sans-serif'; g.fillText('SOS', W / 2, 286);
+    g.font = '600 13px sans-serif'; g.fillText('HOLD 3 S', W / 2, 312);
+    g.fillStyle = '#5b6b66'; g.font = '500 14px sans-serif'; g.fillText('Location · Health Vault · Family', W / 2, 420);
+    g.textAlign = 'left';
+    return;
+  }
+  const k = (t - T_SOS) * 1.6;
+  g.fillStyle = '#da1e2c'; g.fillRect(0, 64, W, 70);
+  g.fillStyle = '#ffffff'; g.font = '800 26px sans-serif'; g.fillText('SOS ACTIVE', 16, 108);
+  g.font = '500 13px sans-serif'; g.fillText('Help is being alerted', 16, 126);
+  const rows = ['Location locked ±9 m', 'Family alerted', 'Health Vault ready', 'Ambulance 108 nearby', 'Guidance ready'];
+  rows.forEach((r, i) => {
+    const y = 160 + i * 62, done = k > i + 0.6;
+    g.fillStyle = '#ffffff'; g.fillRect(12, y, W - 24, 50);
+    g.fillStyle = done ? '#0b8a57' : '#c9d6d0'; g.beginPath(); g.arc(38, y + 25, 13, 0, Math.PI * 2); g.fill();
+    if (done) { g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.beginPath(); g.moveTo(31, y + 25); g.lineTo(36, y + 30); g.lineTo(45, y + 19); g.stroke(); }
+    g.fillStyle = '#16231e'; g.font = '600 15px sans-serif'; g.fillText(r, 60, y + 30);
+  });
+  g.fillStyle = '#da1e2c'; g.fillRect(12, H - 70, W - 24, 52);
+  g.fillStyle = '#ffffff'; g.font = '700 18px sans-serif'; g.textAlign = 'center'; g.fillText('Call 108', W / 2, H - 37); g.textAlign = 'left';
 }
 
 // ---------------------------------------------------------------------------------------------- static street (merged)
@@ -435,7 +479,7 @@ export function StreetSet({ lowDetail = false }: { lowDetail?: boolean }) {
 
       {/* the rider and his motorcycle */}
       <Motorcycle drive={(t) => { const b = bike(t); return { ...b, light: t > w.tImpact ? 1.2 : 2.2 }; }} />
-      <Person outfit={OUTFIT.arjun} drive={(t) => riderPose(t, 'helmet')} handR={<LivePhone />} />
+      <Person outfit={OUTFIT.arjun} drive={(t) => riderPose(t, 'helmet')} handR={<LivePhone />} grip="palm" />
       <Person outfit={OUTFIT.arjunBare} drive={(t) => riderPose(t, 'bare')} />
       <Person outfit={OUTFIT.arjunO2} drive={(t) => riderPose(t, 'o2')} />
       <HelmetOnGround />

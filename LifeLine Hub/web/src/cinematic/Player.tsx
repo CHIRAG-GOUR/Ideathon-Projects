@@ -53,8 +53,10 @@ export default function Player({ onTrySos }: { onTrySos?: () => void }) {
   const lowFrames = useRef(0);
   const onFps = useCallback((f: number) => {
     setFps(f);
-    if (f < 22 && st.current.playing) { lowFrames.current++; if (lowFrames.current >= 4) setQuality('low'); } else lowFrames.current = 0;
+    // sustained low frame rate → drop to lite, but only at the next cut (switching mid-shot rebuilds the canvas and blinks)
+    if (f < 22 && st.current.playing) { lowFrames.current++; if (lowFrames.current >= 4) wantLow.current = true; } else lowFrames.current = 0;
   }, []);
+  const wantLow = useRef(false);
 
   // ---- the clock
   useEffect(() => {
@@ -81,6 +83,7 @@ export default function Player({ onTrySos }: { onTrySos?: () => void }) {
   }, [clock]);
 
   const shot = shotAt(t);
+  useEffect(() => { if (wantLow.current && shot.id !== 'accident' && shot.id !== 'ground') { wantLow.current = false; setQuality('low'); } }, [shot.id]);
   const local = t - shot.start;
 
   // ---- audio: per-shot mix, voices, pause = silence

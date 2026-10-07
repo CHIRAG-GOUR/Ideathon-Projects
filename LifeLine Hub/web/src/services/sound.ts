@@ -148,17 +148,31 @@ const LAYERS: Record<string, { bus: 'sfx' | 'music'; build: Build }> = {
     s.connect(f).connect(g).connect(out); s.start(); lfo.start();
     return () => { s.stop(); lfo.stop(); };
   } },
-  // classic single-cylinder motorcycle: low thump with firing pulses
+  // classic single-cylinder (Royal Enfield-style) motorcycle: discrete exhaust "thumps" fired at engine rate,
+  // slightly uneven, with every other beat accented — the dug-dug, not a buzz
   bike: { bus: 'sfx', build: (c, out) => {
-    const o = osc(c, 'sawtooth', 46), o2 = osc(c, 'square', 23), f = c.createBiquadFilter(), g = c.createGain(), puls = osc(c, 'square', 11), pg = c.createGain();
-    f.type = 'lowpass'; f.frequency.value = 260; g.gain.value = 0.07; pg.gain.value = 0.05; puls.connect(pg).connect(g.gain);
-    o.connect(f); o2.connect(f); f.connect(g).connect(out); [o, o2, puls].forEach((x) => x.start());
-    return () => [o, o2, puls].forEach((x) => x.stop());
+    const thump = thumpBuffer(c);
+    const g = c.createGain(), f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = 0.55; f.connect(g).connect(out);
+    let next = c.currentTime + 0.05, beat = 0;
+    const tick = () => {
+      while (next < c.currentTime + 0.25) {
+        const s = c.createBufferSource(), sg = c.createGain();
+        s.buffer = thump; s.playbackRate.value = 0.94 + Math.random() * 0.1;
+        sg.gain.value = beat % 2 ? 0.62 : 1; s.connect(sg).connect(f); s.start(next);
+        next += (1 / 10.5) * (0.93 + Math.random() * 0.14); beat++;
+      }
+    };
+    tick(); const id = setInterval(tick, 60);
+    return () => clearInterval(id);
   } },
-  car: { bus: 'sfx', build: (c, out) => {
-    const o = osc(c, 'sawtooth', 72), f = c.createBiquadFilter(), g = c.createGain();
-    f.type = 'lowpass'; f.frequency.value = 340; g.gain.value = 0.06; o.connect(f).connect(g).connect(out); o.start();
-    return () => o.stop();
+  // the car: a smooth low hum and tyre roar, no buzz
+  car: { bus: 'sfx', build: (c, out, n) => {
+    const o = osc(c, 'sine', 58), o2 = osc(c, 'sine', 116), g = c.createGain(), s = noiseSrc(c, n), f = c.createBiquadFilter(), ng = c.createGain();
+    g.gain.value = 0.05; o.connect(g); o2.connect(g); g.connect(out);
+    f.type = 'lowpass'; f.frequency.value = 380; ng.gain.value = 0.12; s.connect(f).connect(ng).connect(out);
+    [o, o2, s].forEach((x) => x.start());
+    return () => [o, o2, s].forEach((x) => x.stop());
   } },
   crowd: { bus: 'sfx', build: (c, out, n) => {
     const stops: (() => void)[] = [];
@@ -189,19 +203,15 @@ const LAYERS: Record<string, { bus: 'sfx' | 'music'; build: Build }> = {
   } },
   // ---- music
   calm: { bus: 'music', build: (c, out) => pad(c, out, [196, 246.9, 293.7, 392], 0.03, 0.12) },
+  // tension: a low soft drone and a slow heartbeat
   tension: { bus: 'music', build: (c, out) => {
-    const a = osc(c, 'sawtooth', 55), b = osc(c, 'sawtooth', 55.5), f = c.createBiquadFilter(), sw = osc(c, 'sine', 0.06), sg = c.createGain(), g = c.createGain();
-    f.type = 'lowpass'; f.frequency.value = 260; f.Q.value = 5; sg.gain.value = 140; sw.connect(sg).connect(f.frequency); g.gain.value = 0.1;
-    a.connect(f); b.connect(f); f.connect(g).connect(out);
-    const beat = osc(c, 'sine', 50), bg = c.createGain(), lfo = osc(c, 'square', 1.2), lg = c.createGain(); bg.gain.value = 0; lg.gain.value = 0.14; lfo.connect(lg).connect(bg.gain); beat.connect(bg).connect(out);
-    [a, b, sw, beat, lfo].forEach((x) => x.start());
-    return () => [a, b, sw, beat, lfo].forEach((x) => x.stop());
+    const stop = pad(c, out, [73.4, 110, 146.8], 0.035, 0.05);
+    const beat = () => { const t = c.currentTime; [0, 0.28].forEach((d, i) => { const o = osc(c, 'sine', 58), bg = c.createGain(); bg.gain.setValueAtTime(0.0001, t + d); bg.gain.exponentialRampToValueAtTime(i ? 0.09 : 0.14, t + d + 0.02); bg.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.22); o.frequency.setValueAtTime(64, t + d); o.frequency.exponentialRampToValueAtTime(42, t + d + 0.2); o.connect(bg).connect(out); o.start(t + d); o.stop(t + d + 0.25); }); };
+    beat(); const id = setInterval(beat, 1050);
+    return () => { stop(); clearInterval(id); };
   } },
-  response: { bus: 'music', build: (c, out) => {
-    const stops: (() => void)[] = [];
-    [110, 164.8, 220].forEach((hz) => { const o = osc(c, 'sawtooth', hz), f = c.createBiquadFilter(), g = c.createGain(), p = osc(c, 'square', 4), pg = c.createGain(); f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = 0.03; pg.gain.value = 0.025; p.connect(pg).connect(g.gain); o.connect(f).connect(g).connect(out); o.start(); p.start(); stops.push(() => { o.stop(); p.stop(); }); });
-    return () => stops.forEach((x) => x());
-  } },
+  // response: hopeful, steady pad with a gentle pulse
+  response: { bus: 'music', build: (c, out) => pad(c, out, [220, 277.2, 329.6, 440], 0.028, 0.5) },
   warm: { bus: 'music', build: (c, out) => pad(c, out, [261.6, 329.6, 392, 523.3], 0.04, 0.18) },
 };
 function pad(c: AudioContext, out: GainNode, notes: number[], vol: number, vib: number) {
@@ -233,3 +243,17 @@ export function speak(text: string, o: { rate?: number; pitch?: number; lang?: s
   } catch { /* unsupported */ }
 }
 export const stopSpeaking = () => { try { speechSynthesis.cancel(); } catch { /* unsupported */ } };
+
+/** One exhaust beat of a big single: a falling low sine plus a short, dark noise pop (≈140 ms). */
+function thumpBuffer(c: AudioContext) {
+  const len = Math.floor(c.sampleRate * 0.14), b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+  let ph = 0, lp = 0;
+  for (let i = 0; i < len; i++) {
+    const t = i / c.sampleRate, hz = 46 + 40 * Math.exp(-t * 40);
+    ph += (2 * Math.PI * hz) / c.sampleRate;
+    lp += 0.08 * ((Math.random() * 2 - 1) - lp);
+    const env = Math.min(1, t / 0.004) * Math.exp(-t * 26);
+    d[i] = env * (0.75 * Math.sin(ph) + 0.25 * Math.sin(ph * 2.02) + 1.6 * lp * Math.exp(-t * 55));
+  }
+  return b;
+}

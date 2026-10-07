@@ -98,10 +98,25 @@ const torsoProfile = (female: boolean) => (female
   : [[0, -0.07], [0.124, -0.065], [0.13, -0.01], [0.124, 0.12], [0.132, 0.24], [0.147, 0.36], [0.152, 0.44], [0.142, 0.5], [0.108, 0.545], [0.058, 0.565], [0, 0.57]]
 ).map(([r, y]) => new THREE.Vector2(r, y));
 const taper = (rt: number, rb: number, h: number, seg = 14) => new THREE.CylinderGeometry(rt, rb, h, seg, 1);
+/** Skull and jaw as ONE smooth surface (no seams on the cheeks or chin): a sphere narrowed and brought forward below the eyes. */
+function headGeo(narrow: number) {
+  const g = new THREE.SphereGeometry(1, 44, 32), a = g.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < a.count; i++) {
+    let x = a.getX(i), y = a.getY(i), z = a.getZ(i);
+    const u = Math.max(0, Math.min(1, (0.15 - y) / 1.15)), uu = u * u;
+    x *= 1 - narrow * uu;
+    z = z * (1 - 0.16 * uu) + (z > 0 ? 0.14 * u * z : -0.05 * u);
+    if (y < -0.55) y = -0.55 + (y + 0.55) * 0.82;
+    a.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
 const G = {
   torsoM: new THREE.LatheGeometry(torsoProfile(false), 28),
   torsoF: new THREE.LatheGeometry(torsoProfile(true), 28),
   sphere: new THREE.SphereGeometry(1, 22, 16),
+  headM: headGeo(0.3), headF: headGeo(0.38),
   sphereLo: new THREE.SphereGeometry(1, 12, 9),
   thigh: taper(0.074, 0.056, 0.44), thighLoose: taper(0.095, 0.084, 0.44),
   shin: taper(0.054, 0.04, 0.42), shinLoose: taper(0.082, 0.058, 0.42),
@@ -121,6 +136,7 @@ const G = {
   ring: new THREE.TorusGeometry(0.017, 0.0019, 6, 20),
   bandage: new THREE.TorusGeometry(0.098, 0.011, 8, 32),
   dupattaDrape: new THREE.TorusGeometry(0.2, 0.024, 8, 28, Math.PI * 0.95),
+  skirt: new THREE.CylinderGeometry(0.17, 0.215, 0.5, 32, 1, true),
 };
 
 /** A woven print for kurta / kameez / dupatta: base colour with a small repeating motif (canvas, cached). */
@@ -156,7 +172,7 @@ const BLOOD_DRY = () => mat('#5a1010', { rough: 0.6 });
 
 // ---------------------------------------------------------------------------------------------- person
 /** An articulated person (faces +z, pelvis at the group origin, ~0.94 m above the feet when standing). */
-export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { outfit: Outfit; drive: (t: number) => PersonState; scale?: number; handR?: ReactNode; detail?: 'full' | 'low' }) {
+export function Person({ outfit, drive, scale = 1, handR, grip = 'flat', detail = 'full' }: { outfit: Outfit; drive: (t: number) => PersonState; scale?: number; handR?: ReactNode; grip?: 'flat' | 'palm'; detail?: 'full' | 'low' }) {
   const o = outfit;
   const clock = useClock();
   const root = useRef<THREE.Group>(null);
@@ -169,12 +185,12 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
   const full = detail === 'full';
   const M = useMemo(() => {
     const printed = (base: string) => (o.print ? mat('#d9d9d9', { rough: 0.9, map: fabric(base, o.print) }) : mat(base, { rough: 0.9 }));
-    const hairCol = o.grey ? '#9b948d' : o.hair;
+    const hairCol = o.grey ? (female ? '#3d3632' : '#5c5550') : o.hair;
     return {
       skin: mat(o.skin, { rough: 0.72 }),
       lip: mat(new THREE.Color(o.skin).lerp(new THREE.Color('#8a3a3a'), 0.45).getStyle(), { rough: 0.45 }),
       hair: mat(hairCol, { rough: 0.75 }),
-      brow: mat(o.grey ? '#6e6862' : o.hair, { rough: 0.8 }),
+      brow: mat(o.grey ? '#3a3330' : o.hair, { rough: 0.8 }),
       top: o.top === 'kurta' || o.top === 'kameez' ? printed(o.shirt) : mat(o.shirt, { rough: o.top === 'uniform' ? 0.75 : 0.88 }),
       collar: mat(new THREE.Color(o.shirt).offsetHSL(0, 0, 0.05).getStyle(), { rough: 0.75 }),
       pants: mat(o.pants, { rough: 0.82 }),
@@ -194,6 +210,7 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
       metal: mat('#2b2d33', { rough: 0.3, metal: 0.8 }),
       bindi: mat('#b0102a', { rough: 0.3 }),
       watch: mat('#c9ccd2', { rough: 0.2, metal: 0.9 }),
+      skirt: (() => { const m = (o.top === 'kurta' || o.top === 'kameez' ? printed(o.shirt) : mat(o.shirt)).clone(); m.side = THREE.DoubleSide; return m; })(),
     };
   }, [o]);
 
@@ -214,6 +231,10 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
     j.hipR?.rotation.set(-p.hipR, 0, -0.03);
     j.kneeL?.rotation.set(p.kneeL, 0, 0);
     j.kneeR?.rotation.set(p.kneeR, 0, 0);
+    // the kurta / kameez hem follows the thighs: hangs straight when standing, lies over the lap when seated
+    const hip = Math.min(p.hipL, p.hipR);
+    j.skirt?.rotation.set(-hip * 0.92, 0, 0);
+    j.skirt?.scale.set(1, 1 - 0.42 * Math.min(1, Math.max(0, hip) / 1.4), 1);
     j.shL?.rotation.set(-p.shL, 0, p.shLz);
     j.shR?.rotation.set(-p.shR, 0, -p.shRz);
     j.elL?.rotation.set(-p.elL, 0, 0);
@@ -274,7 +295,8 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
         </group>
         {side > 0 && o.bandage && <mesh geometry={G.cuff} material={mat('#f4f6f6', { rough: 0.9 })} position={[0, -0.12, 0]} scale={[1.25, 2.6, 1.25]} />}
         {side > 0 && <mesh ref={set('injArm')} geometry={G.sphere} material={BLOOD_DRY()} position={[0, -0.11, 0.036]} scale={[0.026, 0.06, 0.008]} visible={false} />}
-        {side < 0 && handR && <group ref={prop} position={[0, -0.33, 0.03]} rotation={[Math.PI / 2, 0, 0]}>{handR}</group>}
+        {/* a prop either lies across the fingers ('flat': tablet, phone at the ear) or sits in the palm, screen out, held by the thumb and fingers */}
+        {side < 0 && handR && <group ref={prop} position={grip === 'palm' ? [0, -0.318, 0.04] : [0, -0.33, 0.03]} rotation={grip === 'palm' ? [0, 0, 0] : [Math.PI / 2, 0, 0]}>{handR}</group>}
       </group>
     </group>
   );
@@ -282,9 +304,6 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
   const leg = (side: 1 | -1) => (
     <group ref={set(side > 0 ? 'hipL' : 'hipR')} position={[0.088 * side, -0.035, 0]}>
       <mesh geometry={o.loose ? G.thighLoose : G.thigh} material={M.pants} position={[0, -0.22, 0]} scale={[build, 1, build]} />
-      {/* tunic panels hang from the hip and follow the thigh (side slits), front and back */}
-      {tunic && <mesh geometry={G.box} material={M.top} position={[0.008 * side, -0.2, 0.08]} scale={[0.18 * build, 0.44, 0.016]} />}
-      {tunic && <mesh geometry={G.box} material={M.top} position={[0.008 * side, -0.2, -0.08]} scale={[0.18 * build, 0.44, 0.016]} />}
       {M.coat && <mesh geometry={G.box} material={M.coat} position={[0.02 * side, -0.15, 0.08]} scale={[0.17, 0.36, 0.014]} />}
       <group ref={set(side > 0 ? 'kneeL' : 'kneeR')} position={[0, -0.45, 0]}>
         <mesh geometry={G.sphere} material={M.pants} scale={o.loose ? 0.085 : 0.057} />
@@ -303,8 +322,7 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
   const head = (
     <group ref={set('head')} position={[0, 0.655, 0]}>
       {/* skull, jaw, ears */}
-      <mesh geometry={G.sphere} material={M.skin} position={[0, 0.075, 0]} scale={[0.09, 0.106, 0.1]} />
-      <mesh geometry={G.sphere} material={M.skin} position={[0, 0.027, 0.018]} scale={[female ? 0.064 : 0.069, female ? 0.056 : 0.06, 0.073]} />
+      <mesh geometry={female ? G.headF : G.headM} material={M.skin} position={[0, 0.075, 0]} scale={[0.09, 0.106, 0.1]} />
       {[1, -1].map((sd) => <mesh key={sd} geometry={G.sphereLo} material={M.skin} position={[0.088 * sd, 0.068, -0.006]} scale={[0.016, 0.031, 0.022]} />)}
       {/* nose: bridge, tip, wings */}
       <mesh geometry={G.sphereLo} material={M.skin} position={[0, 0.072, 0.093]} rotation={[-0.25, 0, 0]} scale={[0.0135, 0.03, 0.017]} />
@@ -316,7 +334,7 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
           {(['L', 'R'] as const).map((sd) => {
             const x = sd === 'L' ? 0.034 : -0.034;
             return (
-              <group key={sd} position={[x, 0.087, 0.077]}>
+              <group key={sd} position={[x, 0.087, 0.081]}>
                 <mesh geometry={G.sphere} material={M.eyeW} scale={[0.0162, 0.014, 0.0125]} />
                 <group ref={set(`iris${sd}`)}>
                   <mesh geometry={G.circle} material={M.iris} position={[0, 0, 0.0126]} scale={0.0083} />
@@ -357,7 +375,8 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
         </>
       )}
       {/* hair */}
-      {!M.helmet && hairStyle !== 'receding' && <mesh geometry={G.hairCap} material={M.hair} position={[0, 0.082, -0.008]} rotation={[-0.2, 0, 0]} scale={[0.95, 1.06, 1.04]} />}
+      {!M.helmet && hairStyle !== 'receding' && <mesh geometry={G.hairCap} material={M.hair} position={[0, 0.082, -0.008]} rotation={[female ? -0.5 : -0.3, 0, 0]} scale={female ? [0.9, 1.0, 0.99] : [0.95, 1.06, 1.04]} />}
+      {!M.helmet && o.bindi && <mesh geometry={G.box} material={M.bindi} position={[0, 0.184, 0.05]} rotation={[0.55, 0, 0]} scale={[0.005, 0.003, 0.06]} />}
       {!M.helmet && hairStyle === 'receding' && <mesh geometry={G.hairCap} material={M.hair} position={[0, 0.07, -0.02]} rotation={[-0.62, 0, 0]} scale={[0.96, 0.98, 1.02]} />}
       {!M.helmet && <mesh geometry={G.hairBack} material={M.hair} position={[0, 0.072, -0.004]} scale={[0.95, 1.05, 1.04]} />}
       {!M.helmet && hairStyle === 'side' && <mesh geometry={G.sphere} material={M.hair} position={[0.03, 0.17, 0.06]} rotation={[0.3, 0, -0.3]} scale={[0.07, 0.022, 0.05]} />}
@@ -388,6 +407,7 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
       <mesh geometry={G.sphere} material={tunic ? M.top : M.pants} position={[0, -0.02, 0]} scale={[(female ? 0.172 : 0.162) * build, 0.105, 0.112 * build]} />
       {leg(1)}
       {leg(-1)}
+      {tunic && <group ref={set('skirt')} position={[0, 0.03, 0]}><mesh geometry={G.skirt} material={M.skirt} position={[0, -0.25, 0]} scale={[build, 1, 0.78 * build]} /></group>}
       <group ref={set('spine')} position={[0, 0.05, 0]}>
         <mesh geometry={female ? G.torsoF : G.torsoM} material={M.coat ?? M.top} scale={[1.13 * build, 1, 0.74 * build]} />
         {build > 1.04 && <mesh geometry={G.sphere} material={M.coat ?? M.top} position={[0, 0.1, 0.022]} scale={[0.122, 0.12, 0.092 + (build - 1) * 0.25]} />}
@@ -413,7 +433,6 @@ export function Person({ outfit, drive, scale = 1, handR, detail = 'full' }: { o
           <>
             {/* draped across the chest, falling behind both shoulders */}
             <mesh geometry={G.dupattaDrape} material={M.dupatta} position={[0, 0.5, 0.02]} rotation={[0.95, 0, Math.PI + 0.08]} scale={[0.95, 1.15, 1]} />
-            {[1, -1].map((sd) => <mesh key={sd} geometry={G.box} material={M.dupatta!} position={[0.13 * sd, 0.22, -0.085]} rotation={[0.08, 0, 0.05 * sd]} scale={[0.09, 0.62, 0.012]} />)}
           </>
         )}
         {M.pack && <RoundedBox args={[0.3, 0.42, 0.16]} radius={0.05} position={[0, 0.27, -0.17]} material={M.pack} />}

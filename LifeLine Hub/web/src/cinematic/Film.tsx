@@ -9,13 +9,13 @@ import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import { useRef } from 'react';
 import * as THREE from 'three';
 import { ClockCtx } from './models';
-import { HomeSet, HospitalSet, StreetSet, WardSet } from './sets';
+import { HomeSet, HospitalSet, PHONE_VIEW, StreetSet, WardSet } from './sets';
 import { WORLD_INFO, ambulance, bike, rider, type V3 } from './sim';
 import { clamp, lerp, lerp3, seg, shotAt, type SetId } from './timeline';
 
 export type Quality = 'high' | 'low';
 /** `key`: a soft film key light near the camera for close-ups (faces read at night), 0 = none. */
-interface Cam { p: V3; l: V3; fov: number; shake?: number; key?: number }
+interface Cam { p: V3; l: V3; fov: number; shake?: number; key?: number; up?: V3 }
 
 const ease = (x: number) => x * x * (3 - 2 * x);
 const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -78,9 +78,17 @@ export function cameraAt(t: number): Cam {
     case 'bystanders':
       return { p: lerp3([R[0] - 6.2, 1.7, R[2] + 5.6], [R[0] - 4.6, 1.55, R[2] + 4.4], u), l: [R[0] + 0.9, 0.7, R[2] - 0.9], fov: 40, shake: 0.03 };
     case 'phone':
-    case 'interactive':
-      // low beside his head: his face (in pain, then focused) and the phone he lifts
-      return { p: lerp3([R[0] + 0.82, 0.58, R[2] + 1.05], [R[0] + 0.7, 0.52, R[2] + 0.98], u), l: [R[0] + 0.04, 0.3, R[2] + 0.62], fov: 34, shake: 0.006, key: 7 };
+    case 'interactive': {
+      // low beside his head: his face (in pain, then focused) and the phone he lifts —
+      // then his point of view: looking up at the screen, the LifeLine SOS button under his thumb
+      const base: Cam = { p: lerp3([R[0] + 0.82, 0.58, R[2] + 1.05], [R[0] + 0.7, 0.52, R[2] + 0.98], u), l: [R[0] + 0.04, 0.3, R[2] + 0.62], fov: 34, shake: 0.006, key: 7 };
+      const k = t - (s.id === 'phone' ? s.start : s.start - 4);
+      const e = ease(clamp((k - 2.2) / 0.9));
+      if (e <= 0 || !PHONE_VIEW.live) return base;
+      const P = PHONE_VIEW.p, N = PHONE_VIEW.n, U = PHONE_VIEW.up;
+      const pov: V3 = [P.x + N.x * 0.3, Math.max(0.06, P.y + N.y * 0.3), P.z + N.z * 0.3];
+      return { p: lerp3(base.p, pov, e), l: lerp3(base.l, [P.x, P.y, P.z], e), fov: lerp(34, 40, e), shake: 0.004, key: 7, up: [U.x * e, (1 - e) + U.y * e, U.z * e] };
+    }
     case 'emergencyUi': {
       const a = 0.4 + u * 0.8;
       return { p: [R[0] + 28 * Math.cos(a), 17, R[2] + 28 * Math.sin(a)], l: R, fov: 44 };
@@ -140,6 +148,7 @@ function Rig({ clock }: { clock: { t: number } }) {
     const sh = c.shake ? hand(t, c.shake) : ([0, 0, 0] as V3);
     camera.position.set(c.p[0] + sh[0], c.p[1] + sh[1], c.p[2] + sh[2]);
     look.current.set(c.l[0] + sh[0] * 2, c.l[1] + sh[1] * 2, c.l[2] + sh[2] * 2);
+    if (c.up) camera.up.set(c.up[0], c.up[1], c.up[2]); else camera.up.set(0, 1, 0);
     camera.lookAt(look.current);
     if (key.current) {
       // above and to the right of the lens, like a soft key on set
@@ -204,7 +213,8 @@ export default function Film({ clock, quality, onFps, className }: { clock: { t:
       dpr={quality === 'high' ? [1, 1.75] : [0.75, 1]}
       gl={{ antialias: quality === 'high', powerPreference: 'high-performance', preserveDrawingBuffer: false }}
       camera={{ fov: 40, near: 0.05, far: 1400, position: [0, 30, 60] }}
-      onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 0.92; }}
+      onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 0.92; gl.setClearColor('#0b1018', 1); }}
+      style={{ background: '#0b1018' }}
     >
       <ClockCtx.Provider value={clock}>
         <Rig clock={clock} />

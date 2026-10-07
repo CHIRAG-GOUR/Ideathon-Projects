@@ -345,13 +345,28 @@ export function Ambulance({ drive }: { drive: (t: number) => AmbPose }) {
       {[0.985, -0.985].map((z) => <mesh key={z} geometry={G.box} material={white} position={[-2.6, 1.72, z]} scale={[0.07, 1.9, 0.07]} />)}
       <mesh geometry={G.box} material={white} position={[-2.6, 2.6, 0]} scale={[0.07, 0.13, 2.0]} />
       <mesh geometry={G.box} material={mat('#3a3e44', { rough: 0.6, metal: 0.4 })} position={[-2.74, 0.62, 0]} scale={[0.28, 0.07, 1.9]} />
-      <RoundedBox args={[1.7, 1.45, 2.0]} radius={0.22} position={[1.85, 1.12, 0]} material={white} />
-      <RoundedBox args={[0.9, 0.7, 1.9]} radius={0.15} position={[1.95, 1.62, 0]} material={glass} />
+      {/* cab: tall cabin, a raked windscreen with A-pillars and wipers, a short bonnet, door windows and mirrors */}
+      <RoundedBox args={[0.975, 2.05, 2.0]} radius={0.16} position={[1.5625, 1.42, 0]} material={white} />
+      <RoundedBox args={[0.7, 0.88, 1.98]} radius={0.14} position={[2.375, 0.835, 0]} material={white} />
+      <mesh geometry={G.box} material={white} position={[2.035, 1.786, 0]} rotation={[0, 0, 0.264]} scale={[0.3, 1.15, 1.98]} />
+      <mesh geometry={G.box} material={glass} position={[2.19, 1.825, 0]} rotation={[0, 0, 0.264]} scale={[0.02, 1.02, 1.74]} />
+      {[0.93, -0.93].map((z) => <mesh key={z} geometry={G.box} material={white} position={[2.195, 1.826, z]} rotation={[0, 0, 0.264]} scale={[0.03, 1.15, 0.12]} />)}
+      {[0.42, -0.36].map((z) => <mesh key={z} geometry={G.box} material={RUBBER()} position={[2.325, 1.4, z]} rotation={[0, 0, 0.264]} scale={[0.02, 0.025, 0.62]} />)}
+      {[1, -1].map((sd) => (
+        <group key={sd}>
+          <mesh geometry={G.box} material={glass} position={[1.66, 1.92, 1.003 * sd]} scale={[0.62, 0.62, 0.01]} />
+          <mesh geometry={G.box} material={glass} position={[2.03, 1.85, 1.0 * sd]} rotation={[0, 0, 0.264]} scale={[0.2, 0.9, 0.01]} />
+          <mesh geometry={G.box} material={mat('#c4ccd2', { rough: 0.5 })} position={[1.24, 1.2, 1.004 * sd]} scale={[0.012, 1.3, 0.004]} />
+          <mesh geometry={G.box} material={CHROME()} position={[1.45, 1.38, 1.01 * sd]} scale={[0.12, 0.03, 0.02]} />
+          <mesh geometry={G.box} material={RUBBER()} position={[2.15, 1.75, 1.13 * sd]} scale={[0.05, 0.03, 0.22]} />
+          <mesh geometry={G.box} material={RUBBER()} position={[2.12, 1.66, 1.24 * sd]} scale={[0.06, 0.24, 0.1]} />
+        </group>
+      ))}
       {/* coral/red band */}
       {[1.027, -1.027].map((z) => <mesh key={z} geometry={G.box} position={[-0.75, 1.05, z]} scale={[3.72, 0.22, 0.012]}><meshStandardMaterial color="#d01f35" roughness={0.4} /></mesh>)}
-      <mesh geometry={G.box} position={[1.85, 0.85, 0]} scale={[1.72, 0.16, 2.02]}><meshStandardMaterial color="#d01f35" roughness={0.4} /></mesh>
+      <mesh geometry={G.box} position={[1.9, 0.85, 0]} scale={[1.66, 0.16, 2.02]}><meshStandardMaterial color="#d01f35" roughness={0.4} /></mesh>
       {/* lettering */}
-      <mesh geometry={G.plane} position={[2.71, 1.08, 0]} rotation={[0, Math.PI / 2, 0]} scale={[1.6, 0.3, 1]}><meshStandardMaterial map={front} roughness={0.5} /></mesh>
+      <mesh geometry={G.plane} position={[2.73, 1.08, 0]} rotation={[0, Math.PI / 2, 0]} scale={[1.6, 0.3, 1]}><meshStandardMaterial map={front} roughness={0.5} /></mesh>
       {[1.031, -1.031].map((z) => <mesh key={z} geometry={G.plane} position={[-0.75, 1.75, z]} rotation={[0, z > 0 ? 0 : Math.PI, 0]} scale={[3.0, 0.94, 1]}><meshStandardMaterial map={side} roughness={0.5} /></mesh>)}
       {/* light bar */}
       <mesh geometry={G.box} position={[1.5, 2.72, 0.45]} scale={[0.36, 0.14, 0.7]}><meshStandardMaterial ref={red} color="#ff2a3a" emissive="#ff1a2a" emissiveIntensity={0.2} /></mesh>
