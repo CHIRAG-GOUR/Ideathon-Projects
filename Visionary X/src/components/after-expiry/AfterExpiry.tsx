@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
   ArrowLeft,
-  Sparkles,
   AlertOctagon,
   Clock,
   Calendar,
@@ -23,8 +22,10 @@ import {
   ExternalLink,
   ShieldCheck,
   ChevronRight,
+  Leaf,
+  Coins,
 } from 'lucide-react';
-import { CroissantArt, PaneerCompostArt, SpotWasteToValue, SpotSafetyShield } from '@/components/art/AfterExpiryArt';
+import { CroissantArt, PaneerCompostArt, SpotWasteToValue, SpotSafetyShield, AfterExpiryIcon } from '@/components/art/AfterExpiryArt';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { playSuccessChime } from '@/lib/sound';
 import { cn } from '@/lib/utils';
@@ -264,7 +265,7 @@ export function AfterExpiry() {
         <div className="max-w-2xl">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow bg-leaf-100 px-3 py-1 rounded-full text-leaf-700">
-              <Sparkles className="h-3.5 w-3.5 text-leaf-600" />
+              <AfterExpiryIcon className="h-3.5 w-3.5 text-leaf-700" />
               Waste into value
             </span>
             <span className="chip bg-mango-100 text-mango-800 font-medium">
@@ -316,8 +317,8 @@ export function AfterExpiry() {
         >
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-ink-muted">Potential recovery</p>
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-mango-100 text-mango-600">
-              <Sparkles className="h-5 w-5" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-mango-100 text-mango-700">
+              <Coins className="h-5 w-5" />
             </span>
           </div>
           <p className="mt-3 font-display text-4xl sm:text-5xl font-bold text-ink">
@@ -450,7 +451,7 @@ export function AfterExpiry() {
                   {/* How to Repurpose Box */}
                   <div className="mt-4 rounded-3xl bg-cream-100 p-4 ring-1 ring-inset ring-cream-300/80">
                     <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-leaf-800">
-                      <Sparkles className="h-3.5 w-3.5 text-mango-500" />
+                      <Leaf className="h-3.5 w-3.5 text-leaf-600" />
                       How to repurpose
                     </p>
                     <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">

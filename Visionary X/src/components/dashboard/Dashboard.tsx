@@ -3,10 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, ScanLine, AlertTriangle, PackageCheck, Lightbulb, Warehouse, Printer, PartyPopper, Star, Sparkles } from 'lucide-react';
+import { ArrowRight, ScanLine, AlertTriangle, PackageCheck, Lightbulb, Warehouse, Printer, PartyPopper, Star } from 'lucide-react';
 import { useShop, useStockItems, summarize } from '@/lib/store';
 import { ZONES, formatDaysLeft } from '@/lib/products';
 import { ProductArt } from '@/components/art/ProductArt';
+import { AfterExpiryIcon } from '@/components/art/AfterExpiryArt';
 import { ZoneBadge } from '@/components/ui/ZoneBadge';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { DemoModeButton } from '@/components/app/DemoMode';
@@ -167,8 +168,8 @@ export function Dashboard() {
               <p className="mt-3 font-bold text-ink">3D Warehouse</p>
               <p className="text-sm text-ink-muted">Organize as the shopkeeper</p>
             </Link>
-            <Link href="/after-expiry" className="card group p-5 transition hover:-translate-y-0.5 border border-mango-200 bg-mango-50/40">
-              <Sparkles className="h-6 w-6 text-mango-600" />
+            <Link href="/after-expiry" className="card group p-5 transition hover:-translate-y-0.5 border border-leaf-200 bg-leaf-50/40">
+              <AfterExpiryIcon className="h-6 w-6 text-leaf-700" />
               <p className="mt-3 font-bold text-ink">After Expiry</p>
               <p className="text-sm text-ink-muted">Turn waste into ₹1,242 value</p>
             </Link>

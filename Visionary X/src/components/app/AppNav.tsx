@@ -3,8 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ScanLine, Boxes, Warehouse, Star, Printer, Sparkles } from 'lucide-react';
+import { Home, ScanLine, Boxes, Warehouse, Star, Printer } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
+import { AfterExpiryIcon } from '@/components/art/AfterExpiryArt';
 import { DemoModeButton } from './DemoMode';
 import { useShop } from '@/lib/store';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
@@ -15,7 +16,7 @@ const APP_LINKS = [
   { label: 'Scan', href: '/scanner', icon: ScanLine },
   { label: 'My Stock', href: '/stock', icon: Boxes },
   { label: 'Warehouse', href: '/warehouse', icon: Warehouse },
-  { label: 'After Expiry', href: '/after-expiry', icon: Sparkles },
+  { label: 'After Expiry', href: '/after-expiry', icon: AfterExpiryIcon },
 ];
 
 function PointsPill() {

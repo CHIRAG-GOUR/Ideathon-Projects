@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Package, ScanLine, Truck, ArrowRight, Sparkles } from 'lucide-react';
+import { CheckCircle2, Package, ScanLine, Truck, ArrowRight } from 'lucide-react';
 import { useShop, useStockItems, StockItem } from '@/lib/store';
 import { ZONES, ZONE_ORDER, ZoneId, formatDaysLeft } from '@/lib/products';
 import { ProductArt } from '@/components/art/ProductArt';
+import { AfterExpiryIcon } from '@/components/art/AfterExpiryArt';
 import { ZoneBadge } from '@/components/ui/ZoneBadge';
 import { ShelfLifeBar } from '@/components/ui/ShelfLifeBar';
 import { cn } from '@/lib/utils';
@@ -28,8 +29,8 @@ export function MyStock() {
           <h1 className="display-xl text-4xl sm:text-5xl">My Stock</h1>
           <p className="mt-2 text-lg text-ink-soft">Everything in your shop, sorted by what needs attention first.</p>
         </div>
-        <Link href="/after-expiry" className="btn btn-secondary btn-sm self-start gap-1.5 ring-mango-300 hover:bg-mango-50 sm:self-auto">
-          <Sparkles className="h-4 w-4 text-mango-600" /> After-Expiry Guide (₹1,242)
+        <Link href="/after-expiry" className="btn btn-secondary btn-sm self-start gap-2 ring-leaf-300 hover:bg-leaf-50 text-leaf-800 sm:self-auto">
+          <AfterExpiryIcon className="h-4 w-4 text-leaf-700" /> After-Expiry Guide (₹1,242)
         </Link>
       </div>
 

@@ -127,10 +127,25 @@ export function SpotSafetyShield(props: React.SVGProps<SVGSVGElement>) {
       <circle cx="58" cy="52" r="14" fill="#FFFFFF" stroke="#8F2A12" strokeWidth="2.5" />
       <circle cx="58" cy="52" r="6" fill="#E4572E" />
       <circle cx="56" cy="50" r="2" fill="#FFFFFF" />
-      <path d="M68 62 L78 72" stroke="#8F2A12" strokeWidth="4" strokeLinecap="round" />
       {/* Check badge */}
       <circle cx="82" cy="78" r="10" fill="#2F8F55" />
       <path d="M77 78 L80 81 L87 74" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }
+
+/** Theme-matching grocery reuse icon */
+export function AfterExpiryIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M7 19H4.8a1.8 1.8 0 0 1-1.57-.88 1.8 1.8 0 0 1 0-1.78L6.8 10" />
+      <path d="M11 19h8.2a1.8 1.8 0 0 0 1.57-.88 1.8 1.8 0 0 0 0-1.78L17.2 10" />
+      <path d="M14 6l-3-3-3 3" />
+      <path d="M11 3v7" />
+      <path d="M12 12c-2.5 0-4.5 1.5-4.5 4 2.5 0 4.5-1.5 4.5-4z" fill="currentColor" fillOpacity="0.25" />
+      <path d="M12 12c2.5 0 4.5 1.5 4.5 4-2.5 0-4.5-1.5-4.5-4z" fill="currentColor" fillOpacity="0.25" />
+      <path d="M12 16v3" />
+    </svg>
+  );
+}
+
