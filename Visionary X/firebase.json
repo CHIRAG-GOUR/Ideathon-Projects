@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "visionary-x-ideathon",
     "public": "out",
     "cleanUrls": true,
     "trailingSlash": false,
@@ -49,7 +50,6 @@
           }
         ]
       }
-    ],
-    "site": "visionary-x-ideathon"
+    ]
   }
 }

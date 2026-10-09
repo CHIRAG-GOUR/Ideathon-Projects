@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "next build && npx -y firebase-tools@latest deploy --only hosting:visionary-x --project ideathon-projects",
+    "deploy": "next build && npx -y firebase-tools@latest deploy --only hosting:visionary-x-ideathon --project ideathon-projects",
     "firebase:create-site": "npx -y firebase-tools@latest hosting:sites:create visionary-x-ideathon --project ideathon-projects"
   },
   "dependencies": {
