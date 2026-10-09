@@ -1,0 +1,4 @@
+ultralytics>=8.1
+opencv-python-headless>=4.8
+requests>=2.31
+lap>=0.4

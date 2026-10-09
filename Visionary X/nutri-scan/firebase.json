@@ -1,0 +1,38 @@
+{
+  "hosting": {
+    "site": "nutri-scan-ideathon",
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "tests/**"
+    ],
+    "frameworksBackend": {
+      "region": "asia-south1",
+      "secrets": [
+        "GEMINI_API_KEY"
+      ],
+      "maxInstances": 3
+    }
+  },
+  "firestore": [
+    {
+      "database": "nutri-scan",
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
+    }
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
+  }
+}

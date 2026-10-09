@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// Rules for the separate "nutri-scan" Firestore database only.
+// Each signed-in (anonymous) user can read and write only their own documents.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    function smallDoc() {
+      return request.resource.data.size() <= 40;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && smallDoc();
+      allow delete: if false;
+
+      match /foods/{foodId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && smallDoc()
+          && request.resource.data.id == foodId
+          && request.resource.data.name is string && request.resource.data.name.size() <= 80
+          && (!('photo' in request.resource.data) || request.resource.data.photo == null
+              || (request.resource.data.photo is string && request.resource.data.photo.size() < 60000));
+      }
+      match /scans/{scanId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && smallDoc() && request.resource.data.id == scanId;
+      }
+      match /waste/{entryId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && smallDoc() && request.resource.data.id == entryId;
+      }
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

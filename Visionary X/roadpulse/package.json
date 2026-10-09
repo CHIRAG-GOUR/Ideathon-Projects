@@ -1,0 +1,50 @@
+{
+  "name": "roadpulse",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/copy-ort.mjs",
+    "fetch-model": "node scripts/fetch-model.mjs",
+    "test": "node --conditions=react-server --import tsx --test tests/unit/*.test.ts",
+    "test:e2e": "node tests/e2e/citizen.mjs && node tests/e2e/live.mjs && node tests/e2e/admin.mjs",
+    "firebase:setup": "npx -y firebase-tools@latest firestore:databases:create roadpulse --location=asia-south1 --project ideathon-projects && npx -y firebase-tools@latest hosting:sites:create roadpulse-ideathon --project ideathon-projects",
+    "deploy": "node scripts/fetch-model.mjs && npx -y firebase-tools@latest experiments:enable webframeworks && npx -y firebase-tools@latest deploy --only hosting:roadpulse-ideathon,firestore:roadpulse,storage:roadpulse --project ideathon-projects"
+  },
+  "engines": { "node": "20" },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "firebase": "^11.10.0",
+    "firebase-admin": "^13.4.0",
+    "framer-motion": "^11.11.9",
+    "geofire-common": "^6.0.0",
+    "idb-keyval": "^6.2.1",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "lucide-react": "^0.453.0",
+    "next": "^14.2.35",
+    "nodemailer": "^6.10.1",
+    "onnxruntime-web": "^1.20.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@types/leaflet": "^1.9.12",
+    "@types/leaflet.markercluster": "^1.5.4",
+    "@types/node": "^20.14.0",
+    "@types/nodemailer": "^6.4.17",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.3"
+  }
+}

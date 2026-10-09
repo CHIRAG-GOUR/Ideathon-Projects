@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.firebase/
+*.log
+firebase-debug.log
+.env*
+android/build/
+android/keystore/
+*.apk

@@ -1,0 +1,16 @@
+{
+  "indexes": [
+    { "collectionGroup": "safetyTrips", "queryScope": "COLLECTION_GROUP", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "dueAt", "order": "ASCENDING" } ] },
+    { "collectionGroup": "safetyTrips", "queryScope": "COLLECTION_GROUP", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "autoEscalate", "order": "ASCENDING" }, { "fieldPath": "overdueAt", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "ownerUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "ownerUid", "order": "ASCENDING" }, { "fieldPath": "startedAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "trailDeleted", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "startedAt", "order": "ASCENDING" } ] },
+    { "collectionGroup": "sosEvents", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "contactUids", "arrayConfig": "CONTAINS" }, { "fieldPath": "status", "order": "ASCENDING" } ] },
+    { "collectionGroup": "safetyTrips", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "contactIds", "arrayConfig": "CONTAINS" }, { "fieldPath": "status", "order": "ASCENDING" } ] },
+    { "collectionGroup": "shareTokens", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "sosId", "order": "ASCENDING" }, { "fieldPath": "contactId", "order": "ASCENDING" } ] }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "contacts", "fieldPath": "linkedUid", "indexes": [ { "order": "ASCENDING", "queryScope": "COLLECTION" }, { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" } ] }
+  ]
+}

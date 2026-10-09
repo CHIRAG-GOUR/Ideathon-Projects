@@ -1,0 +1,21 @@
+{
+  "projects": {
+    "default": "ideathon-projects"
+  },
+  "targets": {
+    "ideathon-projects": {
+      "storage": {
+        "roadpulse": [
+          "roadpulse-ideathon"
+        ]
+      }
+    },
+    "demo-roadpulse": {
+      "storage": {
+        "roadpulse": [
+          "roadpulse-ideathon"
+        ]
+      }
+    }
+  }
+}
