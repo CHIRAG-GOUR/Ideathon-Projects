@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: #1E1B4B;
+    background-color: #F8FAFC;
+    overflow-x: clip;
+  }
+}
+
+@layer components {
+  /* Chirag UI Maker - Product-grade buttons and cards */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-white bg-pup hover:bg-pup-deep active:scale-95 shadow-lg shadow-pup/25 hover:shadow-pup/40 transition-all cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-ink bg-white hover:bg-cloud-100 border border-slate-200/80 active:scale-95 shadow-sm transition-all cursor-pointer;
+  }
+
+  .btn-mint {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-mint-dark bg-mint-soft hover:bg-mint/20 border border-mint-border active:scale-95 transition-all cursor-pointer;
+  }
+
+  .btn-coral {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-coralberry-dark bg-coralberry-soft hover:bg-coralberry/20 border border-coralberry/30 active:scale-95 transition-all cursor-pointer;
+  }
+
+  .card-white {
+    @apply bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-card hover:shadow-soft transition-all;
+  }
+
+  .chip-tag {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold;
+  }
+}
+
+/* Custom friendly scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}

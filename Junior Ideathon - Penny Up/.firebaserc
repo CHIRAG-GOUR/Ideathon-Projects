@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "ideathon-projects"
+  },
+  "targets": {
+    "ideathon-projects": {
+      "hosting": {
+        "pennypup-ideathon": [
+          "pennypup-ideathon"
+        ]
+      }
+    }
+  }
+}
