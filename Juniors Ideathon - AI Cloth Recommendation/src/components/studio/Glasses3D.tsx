@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { Garment } from '../../types/fashion';
 
 /**
- * Creates luxury designer eyewear with contoured, beveled rims,
- * semi-transparent lenses, anatomically fitted bridge & nose pads,
- * corner rivets, and curved temples that wrap naturally around the ears.
+ * Creates luxury designer eyewear with true adult human proportions (143mm wide, 40mm tall),
+ * authentic contour browline, sculpted rims, transparent/gradient optical lenses,
+ * 18k gold/platinum hardware accents, silicone nose pads, and wrap-around temples.
  */
 export function createGlassesMesh(garment?: Garment | null): THREE.Group {
   const group = new THREE.Group();
@@ -15,41 +15,40 @@ export function createGlassesMesh(garment?: Garment | null): THREE.Group {
   const isClubmaster = gId.includes('clubmaster');
   const isRound = gId.includes('round');
   const isMinimal = gId.includes('minimal');
-  const isClearLens = isRound || isMinimal;
 
-  // Frame colors & materials
-  let frameColor = '#18171B'; // Deep obsidian acetate
-  let frameRoughness = 0.18;
-  let frameMetalness = 0.2;
+  // Materials selection
+  let frameColor = '#141416'; // Classic deep onyx obsidian
+  let frameRoughness = 0.16;
+  let frameMetalness = 0.15;
   let hardwareColor = '#D4AF37'; // 18k brushed gold
   let lensColor = '#15241C'; // Polarized G-15 bottle green
-  let lensOpacity = 0.58; // See-through so eyes and eyelids are visible
+  let lensOpacity = 0.65; // Clear enough to see avatar eyes and pupils behind glass
 
   if (isAviator) {
     frameColor = '#D4AF37';
     frameRoughness = 0.15;
     frameMetalness = 0.95;
     hardwareColor = '#D4AF37';
-    lensColor = '#2A1F14'; // Amber gradient
-    lensOpacity = 0.62;
+    lensColor = '#2E2014'; // Warm amber gradient
+    lensOpacity = 0.68;
   } else if (isClubmaster) {
-    frameColor = '#1A181C';
+    frameColor = '#18161A';
     frameRoughness = 0.16;
     frameMetalness = 0.2;
     hardwareColor = '#D8DCE0'; // Polished silver / platinum
-    lensColor = '#1C1D24'; // Smoke grey
-    lensOpacity = 0.60;
+    lensColor = '#1A1C23'; // Classic smoke
+    lensOpacity = 0.64;
   } else if (isRound) {
     frameColor = garment?.hexColor || '#5C3822'; // Havana Tortoiseshell
     frameRoughness = 0.22;
     frameMetalness = 0.1;
     hardwareColor = '#D4AF37';
-    lensColor = '#EBF4F8'; // Anti-reflective clear glass
+    lensColor = '#EBF4F8'; // Anti-reflective clear optical lens
     lensOpacity = 0.26;
   } else if (isMinimal) {
     frameColor = '#3A3C42'; // Gunmetal titanium
-    frameRoughness = 0.3;
-    frameMetalness = 0.9;
+    frameRoughness = 0.28;
+    frameMetalness = 0.92;
     hardwareColor = '#3A3C42';
     lensColor = '#EDF6FA'; // Crystal clear
     lensOpacity = 0.22;
@@ -57,7 +56,6 @@ export function createGlassesMesh(garment?: Garment | null): THREE.Group {
     frameColor = garment.hexColor;
   }
 
-  // 1. Materials
   const frameMat = new THREE.MeshStandardMaterial({
     color: frameColor,
     roughness: frameRoughness,
@@ -67,13 +65,13 @@ export function createGlassesMesh(garment?: Garment | null): THREE.Group {
 
   const hardwareMat = new THREE.MeshStandardMaterial({
     color: hardwareColor,
-    roughness: 0.2,
+    roughness: 0.16,
     metalness: 0.95
   });
 
   const lensMat = new THREE.MeshStandardMaterial({
     color: lensColor,
-    roughness: 0.06,
+    roughness: 0.04,
     metalness: 0.08,
     transparent: true,
     opacity: lensOpacity,
@@ -83,79 +81,107 @@ export function createGlassesMesh(garment?: Garment | null): THREE.Group {
 
   const siliconePadMat = new THREE.MeshStandardMaterial({
     color: '#E0E8EB',
-    roughness: 0.3,
+    roughness: 0.35,
     metalness: 0.05,
     transparent: true,
-    opacity: 0.75
+    opacity: 0.7
   });
 
-  // 2. Geometry helpers
-  // Creates a contour rim shape with a true cutout hole in the center
-  const rimWidth = isRound ? 0.033 : (isAviator ? 0.037 : 0.035);
-  const rimHeight = isRound ? 0.030 : (isAviator ? 0.030 : 0.024);
-  const cornerRadius = isRound ? 0.014 : (isAviator ? 0.011 : 0.006);
-  const borderThickness = (isAviator || isMinimal) ? 0.0016 : 0.0032;
+  // 1. FRONT FRAME PROFILE (Left Half, origin at center of nose bridge)
+  // Total span from X = 0 to X = 0.068 (mirrored gives 136-140mm width)
+  const leftShape = new THREE.Shape();
+  const leftHole = new THREE.Path();
+  const lensShape = new THREE.Shape();
 
-  function buildRimShape(w: number, h: number, r: number, t: number) {
-    const s = new THREE.Shape();
-    const w2 = w / 2;
-    const h2 = h / 2;
-    const cr = Math.min(r, w2 - 0.001, h2 - 0.001);
+  if (isRound) {
+    // Round Panto silhouette
+    leftShape.moveTo(0, 0.010);
+    leftShape.lineTo(0.010, 0.012);
+    leftShape.quadraticCurveTo(0.034, 0.019, 0.058, 0.012);
+    leftShape.lineTo(0.066, 0.008);
+    leftShape.lineTo(0.066, 0.001);
+    leftShape.quadraticCurveTo(0.058, -0.018, 0.034, -0.020);
+    leftShape.quadraticCurveTo(0.012, -0.018, 0.010, 0.001);
+    leftShape.quadraticCurveTo(0.005, 0.006, 0, 0.006);
+    leftShape.closePath();
 
-    // Outer perimeter (clockwise)
-    s.moveTo(-w2 + cr, -h2);
-    s.lineTo(w2 - cr, -h2);
-    s.quadraticCurveTo(w2, -h2, w2, -h2 + cr);
-    s.lineTo(w2, h2 - cr);
-    s.quadraticCurveTo(w2, h2, w2 - cr, h2);
-    s.lineTo(-w2 + cr, h2);
-    s.quadraticCurveTo(-w2, h2, -w2, h2 - cr);
-    s.lineTo(-w2, -h2 + cr);
-    s.quadraticCurveTo(-w2, -h2, -w2 + cr, -h2);
+    leftHole.moveTo(0.014, 0.001);
+    leftHole.quadraticCurveTo(0.014, 0.010, 0.034, 0.014);
+    leftHole.quadraticCurveTo(0.054, 0.010, 0.054, 0.001);
+    leftHole.quadraticCurveTo(0.054, -0.015, 0.034, -0.016);
+    leftHole.quadraticCurveTo(0.014, -0.015, 0.014, 0.001);
+    leftHole.closePath();
 
-    // Inner cutout hole (counter-clockwise)
-    const hole = new THREE.Path();
-    const iw2 = Math.max(0.004, w2 - t);
-    const ih2 = Math.max(0.004, h2 - t);
-    const icr = Math.max(0.001, cr - t);
+    lensShape.moveTo(0.014, 0.001);
+    lensShape.quadraticCurveTo(0.014, 0.010, 0.034, 0.014);
+    lensShape.quadraticCurveTo(0.054, 0.010, 0.054, 0.001);
+    lensShape.quadraticCurveTo(0.054, -0.015, 0.034, -0.016);
+    lensShape.quadraticCurveTo(0.014, -0.015, 0.014, 0.001);
+    lensShape.closePath();
+  } else if (isAviator) {
+    // Teardrop Aviator silhouette
+    leftShape.moveTo(0, 0.013);
+    leftShape.lineTo(0.010, 0.014);
+    leftShape.quadraticCurveTo(0.035, 0.017, 0.062, 0.015);
+    leftShape.lineTo(0.067, 0.012);
+    leftShape.lineTo(0.067, 0.004);
+    leftShape.quadraticCurveTo(0.062, -0.008, 0.056, -0.016);
+    leftShape.quadraticCurveTo(0.040, -0.025, 0.026, -0.022);
+    leftShape.quadraticCurveTo(0.012, -0.018, 0.010, -0.002);
+    leftShape.lineTo(0.009, 0.004);
+    leftShape.quadraticCurveTo(0.005, 0.008, 0, 0.008);
+    leftShape.closePath();
 
-    hole.moveTo(-iw2 + icr, -ih2);
-    hole.quadraticCurveTo(-iw2, -ih2, -iw2, -ih2 + icr);
-    hole.lineTo(-iw2, ih2 - icr);
-    hole.quadraticCurveTo(-iw2, ih2, -iw2 + icr, ih2);
-    hole.lineTo(iw2 - icr, ih2);
-    hole.quadraticCurveTo(iw2, ih2, iw2, ih2 - icr);
-    hole.lineTo(iw2, -ih2 + icr);
-    hole.quadraticCurveTo(iw2, -ih2, iw2 - icr, -ih2);
-    hole.lineTo(-iw2 + icr, -ih2);
+    leftHole.moveTo(0.013, 0.002);
+    leftHole.lineTo(0.013, 0.010);
+    leftHole.quadraticCurveTo(0.035, 0.014, 0.058, 0.011);
+    leftHole.quadraticCurveTo(0.058, 0.000, 0.053, -0.012);
+    leftHole.quadraticCurveTo(0.038, -0.021, 0.027, -0.018);
+    leftHole.quadraticCurveTo(0.014, -0.014, 0.013, 0.002);
+    leftHole.closePath();
 
-    s.holes.push(hole);
-    return s;
+    lensShape.moveTo(0.013, 0.002);
+    lensShape.lineTo(0.013, 0.010);
+    lensShape.quadraticCurveTo(0.035, 0.014, 0.058, 0.011);
+    lensShape.quadraticCurveTo(0.058, 0.000, 0.053, -0.012);
+    lensShape.quadraticCurveTo(0.038, -0.021, 0.027, -0.018);
+    lensShape.quadraticCurveTo(0.014, -0.014, 0.013, 0.002);
+    lensShape.closePath();
+  } else {
+    // Iconic Wayfarer & Clubmaster silhouette
+    leftShape.moveTo(0, 0.012);
+    leftShape.lineTo(0.012, 0.014);
+    leftShape.quadraticCurveTo(0.035, 0.018, 0.060, 0.017);
+    leftShape.lineTo(0.068, 0.014); // outer temple lug top
+    leftShape.lineTo(0.068, 0.006); // outer temple lug bottom
+    leftShape.quadraticCurveTo(0.060, 0.004, 0.056, -0.005);
+    leftShape.quadraticCurveTo(0.052, -0.022, 0.035, -0.022); // bottom cheek curve
+    leftShape.quadraticCurveTo(0.016, -0.021, 0.011, -0.008);
+    leftShape.lineTo(0.010, 0.003);
+    leftShape.quadraticCurveTo(0.005, 0.007, 0, 0.007);
+    leftShape.closePath();
+
+    leftHole.moveTo(0.014, 0.004);
+    leftHole.lineTo(0.015, 0.010);
+    leftHole.quadraticCurveTo(0.035, 0.014, 0.054, 0.012);
+    leftHole.quadraticCurveTo(0.055, 0.002, 0.051, -0.005);
+    leftHole.quadraticCurveTo(0.047, -0.018, 0.035, -0.018);
+    leftHole.quadraticCurveTo(0.020, -0.017, 0.016, -0.006);
+    leftHole.closePath();
+
+    lensShape.moveTo(0.014, 0.004);
+    lensShape.lineTo(0.015, 0.010);
+    lensShape.quadraticCurveTo(0.035, 0.014, 0.054, 0.012);
+    lensShape.quadraticCurveTo(0.055, 0.002, 0.051, -0.005);
+    lensShape.quadraticCurveTo(0.047, -0.018, 0.035, -0.018);
+    lensShape.quadraticCurveTo(0.020, -0.017, 0.016, -0.006);
+    lensShape.closePath();
   }
 
-  function buildLensShape(w: number, h: number, r: number, t: number) {
-    const s = new THREE.Shape();
-    const iw2 = (w / 2) - t + 0.0006;
-    const ih2 = (h / 2) - t + 0.0006;
-    const icr = Math.max(0.001, r - t);
-
-    s.moveTo(-iw2 + icr, -ih2);
-    s.lineTo(iw2 - icr, -ih2);
-    s.quadraticCurveTo(iw2, -ih2, iw2, -ih2 + icr);
-    s.lineTo(iw2, ih2 - icr);
-    s.quadraticCurveTo(iw2, ih2, iw2 - icr, ih2);
-    s.lineTo(-iw2 + icr, ih2);
-    s.quadraticCurveTo(-iw2, ih2, -iw2, ih2 - icr);
-    s.lineTo(-iw2, -ih2 + icr);
-    s.quadraticCurveTo(-iw2, -ih2, -iw2 + icr, -ih2);
-    return s;
-  }
-
-  const rimShape = buildRimShape(rimWidth, rimHeight, cornerRadius, borderThickness);
-  const lensShape = buildLensShape(rimWidth, rimHeight, cornerRadius, borderThickness);
+  leftShape.holes.push(leftHole);
 
   const extrudeSettings: THREE.ExtrudeGeometryOptions = {
-    depth: borderThickness * 1.2,
+    depth: 0.0028,
     bevelEnabled: true,
     bevelSegments: 2,
     steps: 1,
@@ -163,129 +189,102 @@ export function createGlassesMesh(garment?: Garment | null): THREE.Group {
     bevelThickness: 0.0006
   };
 
-  const rimGeom = new THREE.ExtrudeGeometry(rimShape, extrudeSettings);
-  rimGeom.center();
+  // Left Front Frame
+  const leftFrontGeom = new THREE.ExtrudeGeometry(leftShape, extrudeSettings);
+  const leftFront = new THREE.Mesh(leftFrontGeom, frameMat);
+  leftFront.castShadow = true;
+  group.add(leftFront);
 
-  const lensGeom = new THREE.ShapeGeometry(lensShape);
-  lensGeom.center();
+  // Right Front Frame (Mirrored X)
+  const rightFront = leftFront.clone();
+  rightFront.scale.set(-1, 1, 1);
+  group.add(rightFront);
 
-  // Eye spacing (inter-pupillary distance center)
-  const eyeOffset = 0.0245;
+  // Left & Right Lenses (embedded inside the cutouts)
+  const leftLensGeom = new THREE.ShapeGeometry(lensShape);
+  const leftLens = new THREE.Mesh(leftLensGeom, lensMat);
+  leftLens.position.set(0, 0, 0.0016);
+  group.add(leftLens);
 
-  // 3. Left Eye Assembly (+X) with subtle face-form wrap (-4 deg)
-  const leftAssembly = new THREE.Group();
-  leftAssembly.position.set(eyeOffset, 0, 0);
-  leftAssembly.rotation.y = -0.07;
+  const rightLens = leftLens.clone();
+  rightLens.scale.set(-1, 1, 1);
+  group.add(rightLens);
 
-  const leftRim = new THREE.Mesh(rimGeom, frameMat);
-  leftRim.castShadow = true;
-  leftAssembly.add(leftRim);
-
-  const leftLens = new THREE.Mesh(lensGeom, lensMat);
-  leftLens.position.set(0, 0, 0.0002);
-  leftAssembly.add(leftLens);
-
-  // Left corner hinge rivet accent
-  const leftRivet = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.0007, 0.0007, 0.002, 8),
-    hardwareMat
-  );
+  // 2. HARDWARE DETAILS: Rivets & Nose Bridge Accent
+  // Corner rivets on outer lugs
+  const rivetGeom = new THREE.CylinderGeometry(0.0008, 0.0008, 0.0022, 8);
+  const leftRivet = new THREE.Mesh(rivetGeom, hardwareMat);
   leftRivet.rotation.x = Math.PI / 2;
-  leftRivet.position.set(rimWidth / 2 - 0.002, rimHeight / 2 - 0.003, 0.002);
-  leftAssembly.add(leftRivet);
+  leftRivet.position.set(0.063, 0.010, 0.0035);
+  group.add(leftRivet);
 
-  group.add(leftAssembly);
+  const rightRivet = new THREE.Mesh(rivetGeom, hardwareMat);
+  rightRivet.rotation.x = Math.PI / 2;
+  rightRivet.position.set(-0.063, 0.010, 0.0035);
+  group.add(rightRivet);
 
-  // 4. Right Eye Assembly (-X) with subtle face-form wrap (+4 deg)
-  const rightAssembly = new THREE.Group();
-  rightAssembly.position.set(-eyeOffset, 0, 0);
-  rightAssembly.rotation.y = 0.07;
-
-  const rightRim = new THREE.Mesh(rimGeom, frameMat);
-  rightRim.castShadow = true;
-  rightAssembly.add(rightRim);
-
-  const rightLens = new THREE.Mesh(lensGeom, lensMat);
-  rightLens.position.set(0, 0, 0.0002);
-  rightAssembly.add(rightLens);
-
-  // Right corner hinge rivet accent
-  const rightRivet = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.0007, 0.0007, 0.002, 8),
+  // Arched metallic nose bridge clip / accent
+  const bridgeAccent = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.0009, 0.0009, 0.018, 8),
     hardwareMat
   );
-  rightRivet.rotation.x = Math.PI / 2;
-  rightRivet.position.set(-rimWidth / 2 + 0.002, rimHeight / 2 - 0.003, 0.002);
-  rightAssembly.add(rightRivet);
+  bridgeAccent.rotation.z = Math.PI / 2;
+  bridgeAccent.position.set(0, 0.010, 0.0034);
+  group.add(bridgeAccent);
 
-  group.add(rightAssembly);
-
-  // 5. High-Fashion Nose Bridge spanning the nasal bone
-  const bridgeCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-0.008, 0.001, 0.001),
-    new THREE.Vector3(0, 0.004, 0.003),
-    new THREE.Vector3(0.008, 0.001, 0.001)
-  ]);
-  const bridgeGeom = new THREE.TubeGeometry(bridgeCurve, 12, (isAviator || isMinimal) ? 0.0008 : 0.0012, 8, false);
-  const bridgeMesh = new THREE.Mesh(bridgeGeom, hardwareMat);
-  group.add(bridgeMesh);
-
-  // Top Brow Bar (Aviator double-bridge signature)
+  // Top Brow Bar for Aviator style
   if (isAviator) {
-    const topBar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0007, 0.0007, 0.062, 8),
+    const browBar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0007, 0.0007, 0.116, 8),
       hardwareMat
     );
-    topBar.rotation.z = Math.PI / 2;
-    topBar.position.set(0, rimHeight / 2 + 0.001, 0.001);
-    group.add(topBar);
+    browBar.rotation.z = Math.PI / 2;
+    browBar.position.set(0, 0.017, 0.002);
+    group.add(browBar);
   }
 
-  // 6. Silicone Nose Pads (resting on both sides of the nose)
-  const leftPad = new THREE.Mesh(
-    new THREE.BoxGeometry(0.002, 0.005, 0.003),
-    siliconePadMat
-  );
-  leftPad.position.set(0.0075, -0.004, -0.003);
-  leftPad.rotation.set(0.2, -0.3, -0.2);
+  // 3. SILICONE NOSE PADS (Comfortably flanking the nasal bone)
+  const padGeom = new THREE.BoxGeometry(0.0022, 0.0055, 0.0035);
+  const leftPad = new THREE.Mesh(padGeom, siliconePadMat);
+  leftPad.position.set(0.011, -0.005, -0.003);
+  leftPad.rotation.set(0.2, -0.25, -0.15);
   group.add(leftPad);
 
-  const rightPad = new THREE.Mesh(
-    new THREE.BoxGeometry(0.002, 0.005, 0.003),
-    siliconePadMat
-  );
-  rightPad.position.set(-0.0075, -0.004, -0.003);
-  rightPad.rotation.set(0.2, 0.3, 0.2);
+  const rightPad = new THREE.Mesh(padGeom, siliconePadMat);
+  rightPad.position.set(-0.011, -0.005, -0.003);
+  rightPad.rotation.set(0.2, 0.25, 0.15);
   group.add(rightPad);
 
-  // 7. Sculpted Temples (arms) extending backwards over the ears
-  const templeArmRadius = (isAviator || isMinimal) ? 0.0008 : 0.0012;
-  const outerX = eyeOffset + (rimWidth / 2) - 0.0015;
+  // 4. TEMPLES (ARMS)
+  // Perfectly sized to human temple width: starts at X = 0.067, hugs head at X = 0.070, hooks over ears
+  const templeArmRadius = (isAviator || isMinimal) ? 0.0010 : 0.0014;
 
-  // Left Temple Arm
   const leftTempleCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(outerX, 0.002, 0.001),
-    new THREE.Vector3(outerX + 0.002, 0.003, -0.035),
-    new THREE.Vector3(outerX + 0.002, 0.002, -0.075),
-    new THREE.Vector3(outerX, -0.012, -0.098) // curved ear hook behind ear
+    new THREE.Vector3(0.067, 0.010, 0.001),
+    new THREE.Vector3(0.070, 0.009, -0.030),
+    new THREE.Vector3(0.070, 0.007, -0.065),
+    new THREE.Vector3(0.068, -0.006, -0.085),
+    new THREE.Vector3(0.066, -0.016, -0.095)
   ]);
   const leftTemple = new THREE.Mesh(
     new THREE.TubeGeometry(leftTempleCurve, 20, templeArmRadius, 8, false),
     frameMat
   );
+  leftTemple.castShadow = true;
   group.add(leftTemple);
 
-  // Right Temple Arm
   const rightTempleCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-outerX, 0.002, 0.001),
-    new THREE.Vector3(-outerX - 0.002, 0.003, -0.035),
-    new THREE.Vector3(-outerX - 0.002, 0.002, -0.075),
-    new THREE.Vector3(-outerX, -0.012, -0.098) // curved ear hook behind ear
+    new THREE.Vector3(-0.067, 0.010, 0.001),
+    new THREE.Vector3(-0.070, 0.009, -0.030),
+    new THREE.Vector3(-0.070, 0.007, -0.065),
+    new THREE.Vector3(-0.068, -0.006, -0.085),
+    new THREE.Vector3(-0.066, -0.016, -0.095)
   ]);
   const rightTemple = new THREE.Mesh(
     new THREE.TubeGeometry(rightTempleCurve, 20, templeArmRadius, 8, false),
     frameMat
   );
+  rightTemple.castShadow = true;
   group.add(rightTemple);
 
   return group;
