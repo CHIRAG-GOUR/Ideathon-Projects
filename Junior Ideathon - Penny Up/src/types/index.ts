@@ -1,4 +1,4 @@
-export interface SavingsGoal {
+﻿export interface SavingsGoal {
   id: string;
   title: string;
   target_amount: number;
@@ -26,7 +26,17 @@ export interface Transaction {
   is_sample?: boolean;
 }
 
-export type ActiveTab = 'home' | 'goals' | 'premium';
+export type ActiveTab = 'home' | 'goals' | 'chores' | 'calculator';
+
+export interface ChoreItem {
+  id: string;
+  title: string;
+  reward: number;
+  emoji: string;
+  category: 'room' | 'study' | 'pet' | 'help' | 'reading';
+  completed: boolean;
+  completed_at?: string;
+}
 
 export interface ToastMessage {
   id: string;
