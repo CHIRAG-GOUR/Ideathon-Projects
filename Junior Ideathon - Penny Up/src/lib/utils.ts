@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from 'clsx';
+﻿import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Consistent Indian Rupee formatting (e.g. ₹979, ₹1,000, ₹650)
+ * Indian Rupee formatting with currency symbol ₹ (e.g. ₹979, ₹1,000, ₹650)
  */
 export function formatRupee(amount: number): string {
   const rounded = Math.round(Math.max(0, amount));
@@ -29,7 +29,7 @@ export function isGoalCompleted(saved: number, target: number): boolean {
 }
 
 /**
- * Friendly readable date (e.g. "Today, 4:15 PM" or "Aug 27, 2026")
+ * Friendly readable date (e.g. "Today, 4:15 PM" or "Aug 12, 2026")
  */
 export function formatFriendlyDate(dateStr?: string): string {
   if (!dateStr) return 'Recently';
@@ -46,4 +46,19 @@ export function formatFriendlyDate(dateStr?: string): string {
   } catch {
     return dateStr;
   }
+}
+
+/**
+ * Calculate weeks needed to reach a target based on weekly savings amount
+ */
+export function calculatePace(remaining: number, weeklyAmount: number): { weeks: number; targetDate: string } {
+  if (remaining <= 0) return { weeks: 0, targetDate: 'Goal Completed!' };
+  const safeWeekly = Math.max(10, weeklyAmount);
+  const weeks = Math.ceil(remaining / safeWeekly);
+  
+  const targetDateObj = new Date();
+  targetDateObj.setDate(targetDateObj.getDate() + weeks * 7);
+  const targetDate = targetDateObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+  
+  return { weeks, targetDate };
 }

@@ -1,12 +1,12 @@
-import { SavingsGoal, Transaction } from '../types';
+﻿import { SavingsGoal, Transaction } from '../types';
 
 const BASE44_APP_ID = '6a6de48aa903ce3878173fe1';
 const BASE_URL = 'https://little-smart-penny-pal.base44.app/api';
 
-const GOALS_STORAGE_KEY = 'pennypup_savings_goals_v1';
-const TRANSACTIONS_STORAGE_KEY = 'pennypup_transactions_v1';
+const GOALS_STORAGE_KEY = 'pennypup_savings_goals_v2';
+const TRANSACTIONS_STORAGE_KEY = 'pennypup_transactions_v2';
 
-// Initial verified records from live Base44 backend
+// Initial verified records from live Base44 backend with clean emojis
 const INITIAL_GOALS: SavingsGoal[] = [
   {
     id: "6a7201d5f6ccd769ef647e88",
@@ -24,7 +24,7 @@ const INITIAL_GOALS: SavingsGoal[] = [
     target_amount: 200,
     saved_amount: 640,
     emoji: "🧸",
-    color: "rose",
+    color: "amber",
     created_date: "2026-08-01T12:45:04.637000",
     updated_date: "2026-08-27T12:44:38.480000"
   },
@@ -34,7 +34,7 @@ const INITIAL_GOALS: SavingsGoal[] = [
     target_amount: 500,
     saved_amount: 69,
     emoji: "🎨",
-    color: "amber",
+    color: "coin",
     created_date: "2026-08-01T12:27:37.989000",
     updated_date: "2026-08-09T17:09:29.563000"
   }
@@ -50,28 +50,12 @@ const INITIAL_TRANSACTIONS: Transaction[] = [
     created_date: "2026-08-27T12:44:48.758000"
   },
   {
-    id: "6a90313645ceffd5b891afa4",
+    id: "6a9030cbafae7ec5122ea541",
     type: "deposit",
-    amount: 20,
-    note: "Added money to 🧸 toy",
+    amount: 40,
+    note: "Pocket money bonus for 🧸 toy",
     goal_id: "6a6dea50469cba59acdd23b4",
-    created_date: "2026-08-27T12:44:38.862000"
-  },
-  {
-    id: "6a7f3d3c6d89fee579841ee8",
-    type: "deposit",
-    amount: 50,
-    note: "Added money to Book's",
-    goal_id: "6a7201d5f6ccd769ef647e88",
-    created_date: "2026-08-14T16:07:24.978000"
-  },
-  {
-    id: "6a7c5edb02e8552c8a252c5b",
-    type: "deposit",
-    amount: 20,
-    note: "Added money to 🧸 toy",
-    goal_id: "6a6dea50469cba59acdd23b4",
-    created_date: "2026-08-12T11:54:03.714000"
+    created_date: "2026-08-27T12:42:51.657000"
   },
   {
     id: "6a7c5ece640e62dcb1bd6566",
@@ -109,7 +93,7 @@ const INITIAL_TRANSACTIONS: Transaction[] = [
     id: "6a72013a87c7b66bb909670e",
     type: "deposit",
     amount: 50,
-    note: "Pocket money savings",
+    note: "Pocket money from chores",
     goal_id: "6a6de6398f155a57696b7183",
     created_date: "2026-08-04T15:11:54.009000"
   },
@@ -117,7 +101,7 @@ const INITIAL_TRANSACTIONS: Transaction[] = [
     id: "6a72012eb51ff9f5b7269890",
     type: "deposit",
     amount: 500,
-    note: "Birthday gift savings! 🎂",
+    note: "Birthday gift savings! 🎉",
     goal_id: "6a6dea50469cba59acdd23b4",
     created_date: "2026-08-04T15:11:42.551000"
   },
@@ -140,15 +124,13 @@ const INITIAL_TRANSACTIONS: Transaction[] = [
 ];
 
 export const PennyPupApi = {
-  // Load goals with localStorage backup + live sync
+  // Load goals with localStorage backup + live Base44 sync
   async fetchGoals(): Promise<SavingsGoal[]> {
-    // 1. Try reading from localStorage first for instant response
     try {
       const stored = localStorage.getItem(GOALS_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Asynchronously revalidate in background from Base44
           this.syncGoalsFromBackend().catch(() => {});
           return parsed;
         }
@@ -157,7 +139,6 @@ export const PennyPupApi = {
       console.warn('[PennyPup] LocalStorage read error:', e);
     }
 
-    // 2. Fetch live from Base44
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4000);
@@ -169,15 +150,19 @@ export const PennyPupApi = {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(data));
-          return data;
+          // Normalize emojis if needed
+          const cleaned = data.map(item => ({
+            ...item,
+            emoji: item.emoji && !item.emoji.includes('dY') ? item.emoji : (item.title?.includes('toy') ? '🧸' : item.title?.includes('Book') ? '📚' : '🎯')
+          }));
+          localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(cleaned));
+          return cleaned;
         }
       }
     } catch (e) {
       console.info('[PennyPup] Base44 network check fallback to initial snapshot');
     }
 
-    // Fallback to verified initial records
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(INITIAL_GOALS));
     return INITIAL_GOALS;
   },
@@ -190,8 +175,12 @@ export const PennyPupApi = {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(data));
-          return data;
+          const cleaned = data.map(item => ({
+            ...item,
+            emoji: item.emoji && !item.emoji.includes('dY') ? item.emoji : (item.title?.includes('toy') ? '🧸' : item.title?.includes('Book') ? '📚' : '🎯')
+          }));
+          localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(cleaned));
+          return cleaned;
         }
       }
     } catch {}
@@ -242,12 +231,10 @@ export const PennyPupApi = {
       created_date: new Date().toISOString()
     };
 
-    // Save to local storage
     const current = await this.fetchGoals();
     const updated = [newGoal, ...current];
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(updated));
 
-    // Sync to Base44 backend in background
     fetch(`${BASE_URL}/apps/${BASE44_APP_ID}/entities/SavingsGoal`, {
       method: 'POST',
       headers: {
@@ -259,9 +246,9 @@ export const PennyPupApi = {
         target_amount: newGoal.target_amount,
         saved_amount: 0,
         emoji: newGoal.emoji || '🎯',
-        color: newGoal.color || 'purple'
+        color: newGoal.color || 'brand'
       })
-    }).catch(e => console.info('[PennyPup] Background Base44 save completed locally'));
+    }).catch(() => {});
 
     return newGoal;
   },
@@ -272,7 +259,6 @@ export const PennyPupApi = {
     const updated = current.map(g => g.id === id ? { ...g, ...updates, updated_date: new Date().toISOString() } : g);
     localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(updated));
 
-    // Sync to Base44 backend
     fetch(`${BASE_URL}/apps/${BASE44_APP_ID}/entities/SavingsGoal/${id}`, {
       method: 'PATCH',
       headers: {

@@ -1,24 +1,20 @@
-import React, { useState } from 'react';
-import { X, Target, Sparkles } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { X, Target, Plus, Sparkles } from 'lucide-react';
 import { useSavingsStore } from '../../store/useSavingsStore';
 
 interface NewGoalModalProps {
   onClose: () => void;
 }
 
-const EMOJI_OPTIONS = [
-  '📚', '🧸', '🎨', '🚲', '🎮', '🎸', '⚽', '👟',
-  '🎒', '🐶', '🍕', '🚀', '🎁', '🍦', '🛹', '🎧',
-  '🧩', '🏓', '🏊', '⛺'
-];
-
 export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose }) => {
   const { createGoal } = useSavingsStore();
   const [title, setTitle] = useState('');
-  const [targetStr, setTargetStr] = useState('500');
-  const [emoji, setEmoji] = useState('🎯');
+  const [targetAmountStr, setTargetAmountStr] = useState('500');
+  const [emoji, setEmoji] = useState('🧸');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const emojiList = ['🧸', '📚', '🎨', '🚲', '🎮', '⚽', '🎒', '🚀', '🎸', '👟', '🧁', '⭐'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,15 +25,15 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose }) => {
       return;
     }
 
-    const parsedTarget = parseFloat(targetStr);
-    if (isNaN(parsedTarget) || parsedTarget <= 0) {
-      setErrorMessage('Please enter a target amount greater than ₹0');
+    const targetAmount = parseFloat(targetAmountStr);
+    if (isNaN(targetAmount) || targetAmount <= 0) {
+      setErrorMessage('Target amount must be greater than ₹0');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await createGoal(title.trim(), parsedTarget, emoji);
+      await createGoal(title.trim(), targetAmount, emoji);
       onClose();
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to create goal');
@@ -48,107 +44,104 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white rounded-3xl sm:rounded-4xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-cloud-300 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-3 border-b border-cloud-200">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-pup-soft text-pup flex items-center justify-center text-xl shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-brand-soft border border-brand-border flex items-center justify-center text-xl">
               🎯
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-ink">New Savings Goal</h2>
-              <p className="text-xs text-ink-muted font-medium">What dream are you saving for?</p>
+              <h3 className="text-lg sm:text-xl font-black text-ink">New Dream Goal</h3>
+              <p className="text-xs text-ink-muted font-medium">What do you want to save up for?</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-xl text-ink-muted hover:text-ink hover:bg-cloud-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          {errorMessage && (
-            <div className="p-3 rounded-2xl bg-coralberry-soft border border-coralberry/30 text-xs font-bold text-coralberry-dark">
-              {errorMessage}
-            </div>
-          )}
+        {errorMessage && (
+          <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+            {errorMessage}
+          </div>
+        )}
 
-          {/* Goal Name */}
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Pick Emoji */}
           <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">
-              Goal Name:
-            </label>
+            <label className="block text-xs font-bold text-ink mb-1.5">Pick an Icon:</label>
+            <div className="grid grid-cols-6 gap-2">
+              {emojiList.map((em) => (
+                <button
+                  type="button"
+                  key={em}
+                  onClick={() => setEmoji(em)}
+                  className={`h-11 rounded-xl text-xl flex items-center justify-center border transition-all cursor-pointer ${
+                    emoji === em
+                      ? 'bg-brand-soft border-brand text-brand-dark ring-2 ring-brand/20 scale-105'
+                      : 'bg-cloud-100 hover:bg-cloud-200 border-cloud-300'
+                  }`}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-bold text-ink mb-1.5">Goal Name:</label>
             <input
               type="text"
-              required
+              placeholder="e.g. New Bicycle, Harry Potter Book, Lego Set"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. New Bicycle, Drawing Kit, Toy"
-              className="w-full px-4 py-3 rounded-2xl bg-cloud-100 border border-slate-200 text-sm font-bold text-ink focus:outline-none focus:border-pup focus:bg-white transition-all"
+              required
+              className="w-full px-3.5 py-3 rounded-2xl bg-cloud-100 border border-cloud-300 font-bold text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white"
             />
           </div>
 
           {/* Target Amount */}
           <div>
             <label className="block text-xs font-bold text-ink mb-1.5">
-              Target Amount (₹):
+              How much does it cost in total? (₹)
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-black text-ink-muted">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl font-black text-brand-dark">
                 ₹
               </span>
               <input
                 type="number"
-                min="1"
-                step="1"
+                min="10"
+                step="10"
+                value={targetAmountStr}
+                onChange={(e) => setTargetAmountStr(e.target.value)}
                 required
-                value={targetStr}
-                onChange={(e) => setTargetStr(e.target.value)}
-                placeholder="500"
-                className="w-full pl-9 pr-4 py-3 rounded-2xl bg-cloud-100 border border-slate-200 text-lg font-black text-ink focus:outline-none focus:border-pup focus:bg-white transition-all"
+                className="w-full pl-9 pr-4 py-3 rounded-2xl bg-cloud-100 border border-cloud-300 font-black text-2xl text-ink focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white"
               />
             </div>
           </div>
 
-          {/* Pick Icon / Emoji */}
-          <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">
-              Pick an Icon:
-            </label>
-            <div className="grid grid-cols-5 gap-2 p-2 bg-cloud-100 rounded-2xl border border-slate-200">
-              {EMOJI_OPTIONS.map((e) => (
-                <button
-                  type="button"
-                  key={e}
-                  onClick={() => setEmoji(e)}
-                  className={`h-10 rounded-xl text-xl flex items-center justify-center transition-all cursor-pointer ${
-                    emoji === e ? 'bg-white shadow-md scale-110 border border-pup/30' : 'hover:bg-white/60'
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 btn-secondary text-xs sm:text-sm py-3"
-            >
-              Cancel
-            </button>
+          {/* Actions */}
+          <div className="pt-2 flex items-center gap-3">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 btn-primary text-xs sm:text-sm py-3"
+              className="flex-1 btn-primary py-3"
             >
-              {isSubmitting ? 'Creating...' : 'Create Goal 🎯'}
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>{isSubmitting ? 'Creating...' : 'Start Saving!'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary py-3 px-5 text-xs font-bold"
+            >
+              Cancel
             </button>
           </div>
         </form>

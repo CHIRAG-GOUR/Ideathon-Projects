@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Minus, AlertCircle } from 'lucide-react';
 import { useSavingsStore } from '../../store/useSavingsStore';
 import { SavingsGoal } from '../../types';
@@ -11,7 +11,7 @@ interface WithdrawModalProps {
 
 export const WithdrawModal: React.FC<WithdrawModalProps> = ({ goal, onClose }) => {
   const { withdrawMoney } = useSavingsStore();
-  const [amountStr, setAmountStr] = useState<string>('20');
+  const [amountStr, setAmountStr] = useState<string>('50');
   const [note, setNote] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -29,7 +29,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({ goal, onClose }) =
     }
 
     if (parsed > saved) {
-      setErrorMessage(`You cannot withdraw more than the saved amount (${formatRupee(saved)})`);
+      setErrorMessage(`You only have ${formatRupee(saved)} saved in this goal`);
       return;
     }
 
@@ -50,54 +50,46 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({ goal, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white rounded-3xl sm:rounded-4xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-cloud-300">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-3 border-b border-cloud-200">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-coralberry-soft text-coralberry-dark flex items-center justify-center text-xl shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-cloud-200 border border-cloud-300 flex items-center justify-center text-ink text-xl">
               💸
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-ink">Take Out Money</h2>
-              <p className="text-xs text-ink-muted font-medium">Withdraw from {goal.title}</p>
+              <h3 className="text-lg font-black text-ink">Take Out Money</h3>
+              <p className="text-xs text-ink-muted font-medium">From "{goal.title}"</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-xl text-ink-muted hover:text-ink hover:bg-cloud-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Current Available Info Box */}
-        <div className="mt-4 p-3.5 rounded-2xl bg-cloud-100 border border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{goal.emoji}</span>
-            <span className="text-xs font-bold text-ink">{goal.title}</span>
-          </div>
-          <div className="text-right">
-            <span className="text-[11px] font-semibold text-ink-muted block">Available:</span>
-            <span className="text-sm font-black text-pup">{formatRupee(saved)}</span>
-          </div>
+        {/* Current Available Balance */}
+        <div className="my-4 p-3.5 rounded-2xl bg-cloud-100 border border-cloud-300 flex items-center justify-between">
+          <span className="text-xs font-bold text-ink-muted">Currently Saved in Goal:</span>
+          <span className="text-sm font-black text-brand-dark">{formatRupee(saved)}</span>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
-          {errorMessage && (
-            <div className="p-3 rounded-2xl bg-coralberry-soft border border-coralberry/30 text-xs font-bold text-coralberry-dark flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
+        {errorMessage && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
-          {/* Amount Input */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-ink mb-1.5">
-              Amount to Withdraw (₹):
+              How much are you taking out? (₹)
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-black text-ink-muted">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl font-black text-ink-muted">
                 ₹
               </span>
               <input
@@ -105,44 +97,43 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({ goal, onClose }) =
                 min="1"
                 max={saved}
                 step="1"
-                required
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value)}
-                placeholder="20"
-                className="w-full pl-9 pr-4 py-3 rounded-2xl bg-cloud-100 border border-slate-200 text-lg font-black text-ink focus:outline-none focus:border-coralberry focus:bg-white transition-all"
+                placeholder="0"
+                required
+                className="w-full pl-9 pr-4 py-3 rounded-2xl bg-cloud-100 border border-cloud-300 font-black text-2xl text-ink focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white"
               />
             </div>
           </div>
 
-          {/* Reason / Note */}
           <div>
             <label className="block text-xs font-bold text-ink mb-1.5">
-              Reason (Optional):
+              What is this for? (e.g. Bought the toy, Bought ice cream)
             </label>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. Bought school notebook, ice cream treat"
-              className="w-full px-4 py-2.5 rounded-2xl bg-cloud-100 border border-slate-200 text-xs font-medium text-ink focus:outline-none focus:border-coralberry focus:bg-white transition-all"
+              placeholder="Reason for withdrawing"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-cloud-100 border border-cloud-300 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
-          {/* Buttons */}
-          <div className="flex items-center gap-3 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 btn-secondary text-xs sm:text-sm py-3"
-            >
-              Cancel
-            </button>
+          <div className="pt-2 flex items-center gap-3">
             <button
               type="submit"
               disabled={isSubmitting || saved <= 0}
-              className="flex-1 btn-coral text-xs sm:text-sm py-3"
+              className="flex-1 btn-danger-soft py-3 text-xs"
             >
-              {isSubmitting ? 'Processing...' : 'Withdraw Money'}
+              <Minus className="w-4 h-4" />
+              <span>{isSubmitting ? 'Processing...' : 'Confirm Withdrawal'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary py-3 px-5 text-xs font-bold"
+            >
+              Cancel
             </button>
           </div>
         </form>

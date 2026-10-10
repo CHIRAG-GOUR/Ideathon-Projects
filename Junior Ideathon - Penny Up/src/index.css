@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -9,32 +9,36 @@
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    color: #1E1B4B;
+    color: #0F172A;
     background-color: #F8FAFC;
     overflow-x: clip;
   }
 }
 
 @layer components {
-  /* Chirag UI Maker - Product-grade buttons and cards */
+  /* Chirag UI Maker - Product-Grade Buttons & Cards (Clean 2-3 Color Light System) */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-white bg-pup hover:bg-pup-deep active:scale-95 shadow-lg shadow-pup/25 hover:shadow-pup/40 transition-all cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-black text-white bg-brand hover:bg-brand-dark active:scale-95 shadow-md shadow-brand/20 hover:shadow-brand/30 transition-all cursor-pointer;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-ink bg-white hover:bg-cloud-100 border border-slate-200/80 active:scale-95 shadow-sm transition-all cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-ink bg-white hover:bg-cloud-200 border border-cloud-300 active:scale-95 shadow-sm transition-all cursor-pointer;
+  }
+
+  .btn-coin {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-coin-dark bg-coin-soft hover:bg-coin/20 border border-coin-border active:scale-95 transition-all cursor-pointer;
   }
 
   .btn-mint {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-mint-dark bg-mint-soft hover:bg-mint/20 border border-mint-border active:scale-95 transition-all cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-brand-dark bg-brand-soft hover:bg-brand/20 border border-brand-border active:scale-95 transition-all cursor-pointer;
   }
 
-  .btn-coral {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-coralberry-dark bg-coralberry-soft hover:bg-coralberry/20 border border-coralberry/30 active:scale-95 transition-all cursor-pointer;
+  .btn-danger-soft {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 active:scale-95 transition-all cursor-pointer;
   }
 
   .card-white {
-    @apply bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-card hover:shadow-soft transition-all;
+    @apply bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/70 shadow-card hover:shadow-card-hover transition-all;
   }
 
   .chip-tag {

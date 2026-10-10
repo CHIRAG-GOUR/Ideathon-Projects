@@ -1,42 +1,69 @@
-import React from 'react';
-import { X, Sparkles, CheckCircle2, Award } from 'lucide-react';
+﻿import React from 'react';
+import { Sparkles, Trophy, Award, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useSavingsStore } from '../../store/useSavingsStore';
 import { formatRupee } from '../../lib/utils';
 
 export const GoalCelebrationModal: React.FC = () => {
-  const { celebrationGoal, setCelebrationGoal } = useSavingsStore();
+  const { celebrationGoal, setCelebrationGoal, setCertificateGoal } = useSavingsStore();
 
   if (!celebrationGoal) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-300">
-      <div className="w-full max-w-sm bg-white rounded-4xl p-6 sm:p-8 text-center shadow-2xl border border-pup/30 relative overflow-hidden animate-in zoom-in-95 duration-300">
-        <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-ambercoin-soft blur-xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-mint-soft blur-xl pointer-events-none" />
+  const handleOpenCertificate = () => {
+    const goal = celebrationGoal;
+    setCelebrationGoal(null);
+    setCertificateGoal(goal);
+  };
 
-        {/* Big Icon Burst */}
-        <div className="relative mx-auto w-24 h-24 rounded-3xl bg-gradient-to-tr from-pup to-ambercoin flex items-center justify-center text-5xl shadow-xl shadow-pup/25 mb-4 animate-bounce">
-          {celebrationGoal.emoji || '🎯'}
-          <span className="absolute -top-2 -right-2 text-2xl">🌟</span>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-sm bg-white rounded-4xl p-6 sm:p-8 text-center shadow-2xl border-4 border-coin-bright">
+        {/* Animated Trophy Header */}
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-coin to-coin-bright text-white mx-auto flex items-center justify-center text-4xl shadow-lg shadow-coin/30 mb-4 animate-bounce">
+          🏆
         </div>
 
-        <h2 className="text-2xl font-black text-ink tracking-tight">
-          Goal Completed! 🎉
-        </h2>
-        <p className="text-sm font-bold text-pup mt-1">
-          You saved {formatRupee(celebrationGoal.saved_amount)} for {celebrationGoal.title}!
+        <span className="chip-tag bg-coin-soft text-coin-dark border border-coin-border text-xs uppercase tracking-widest font-black mb-2">
+          Goal Reached 100%!
+        </span>
+
+        <h3 className="text-2xl font-black text-ink tracking-tight mt-1 mb-1">
+          You Did It! 🎉
+        </h3>
+
+        <p className="text-xs sm:text-sm text-ink-muted font-semibold mt-1 mb-4">
+          Congratulations! You saved enough coins to achieve your dream:
         </p>
 
-        <p className="text-xs text-ink-muted my-4 leading-relaxed font-medium">
-          You worked hard, added your pocket money, and reached your dream! PennyPup is super proud of you! 🐶❤️
-        </p>
+        {/* Goal Card Preview */}
+        <div className="p-4 rounded-2xl bg-brand-soft border border-brand-border my-4 flex items-center justify-center gap-3">
+          <span className="text-3xl">{celebrationGoal.emoji}</span>
+          <div className="text-left">
+            <h4 className="text-base font-black text-brand-dark leading-tight">
+              {celebrationGoal.title}
+            </h4>
+            <p className="text-xs font-bold text-ink-muted mt-0.5">
+              Saved {formatRupee(celebrationGoal.saved_amount)}
+            </p>
+          </div>
+        </div>
 
-        <button
-          onClick={() => setCelebrationGoal(null)}
-          className="w-full btn-primary py-3.5 text-base shadow-lg shadow-pup/30"
-        >
-          Woohoo! Awesome! 🌟
-        </button>
+        {/* Action Buttons */}
+        <div className="space-y-2 pt-2">
+          <button
+            onClick={handleOpenCertificate}
+            className="w-full btn-primary py-3 text-sm flex items-center justify-center gap-2"
+          >
+            <Award className="w-4 h-4" />
+            <span>View Champion Certificate</span>
+          </button>
+
+          <button
+            onClick={() => setCelebrationGoal(null)}
+            className="w-full btn-secondary py-2.5 text-xs font-bold"
+          >
+            Keep Saving More!
+          </button>
+        </div>
       </div>
     </div>
   );

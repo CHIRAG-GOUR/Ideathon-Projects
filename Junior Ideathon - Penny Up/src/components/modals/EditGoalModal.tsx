@@ -1,40 +1,36 @@
-import React, { useState } from 'react';
-import { X, Trash2, Edit3, AlertCircle } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { X, Trash2, Save, AlertCircle } from 'lucide-react';
 import { useSavingsStore } from '../../store/useSavingsStore';
 import { SavingsGoal } from '../../types';
-import { formatRupee } from '../../lib/utils';
 
 interface EditGoalModalProps {
   goal: SavingsGoal;
   onClose: () => void;
 }
 
-const EMOJI_OPTIONS = [
-  '📚', '🧸', '🎨', '🚲', '🎮', '🎸', '⚽', '👟',
-  '🎒', '🐶', '🍕', '🚀', '🎁', '🍦', '🛹', '🎧'
-];
-
 export const EditGoalModal: React.FC<EditGoalModalProps> = ({ goal, onClose }) => {
   const { updateGoal, deleteGoal } = useSavingsStore();
   const [title, setTitle] = useState(goal.title);
-  const [targetStr, setTargetStr] = useState(goal.target_amount.toString());
+  const [targetAmountStr, setTargetAmountStr] = useState(goal.target_amount.toString());
   const [emoji, setEmoji] = useState(goal.emoji || '🎯');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSave = async (e: React.FormEvent) => {
+  const emojiList = ['🧸', '📚', '🎨', '🚲', '🎮', '⚽', '🎒', '🚀', '🎸', '👟', '🧁', '⭐'];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
     if (!title.trim()) {
-      setErrorMessage('Please give your goal a name!');
+      setErrorMessage('Goal title cannot be empty');
       return;
     }
 
-    const parsedTarget = parseFloat(targetStr);
-    if (isNaN(parsedTarget) || parsedTarget <= 0) {
-      setErrorMessage('Please enter a target amount greater than ₹0');
+    const target = parseFloat(targetAmountStr);
+    if (isNaN(target) || target <= 0) {
+      setErrorMessage('Target amount must be greater than ₹0');
       return;
     }
 
@@ -42,7 +38,7 @@ export const EditGoalModal: React.FC<EditGoalModalProps> = ({ goal, onClose }) =
     try {
       await updateGoal(goal.id, {
         title: title.trim(),
-        target_amount: Math.round(parsedTarget),
+        target_amount: target,
         emoji
       });
       onClose();
@@ -54,13 +50,13 @@ export const EditGoalModal: React.FC<EditGoalModalProps> = ({ goal, onClose }) =
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${goal.title}"? Your saved money (${formatRupee(goal.saved_amount)}) will be removed with this goal.`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to delete "${goal.title}"?`)) return;
     setIsDeleting(true);
     try {
       await deleteGoal(goal.id);
       onClose();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to delete goal');
     } finally {
       setIsDeleting(false);
     }
@@ -68,106 +64,102 @@ export const EditGoalModal: React.FC<EditGoalModalProps> = ({ goal, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white rounded-3xl sm:rounded-4xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-cloud-300 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-cloud-200">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-cloud-200 flex items-center justify-center text-xl shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-cloud-100 border border-cloud-300 flex items-center justify-center text-xl">
               ✏️
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-ink">Edit Goal</h2>
-              <p className="text-xs text-ink-muted font-medium">Update goal details or remove</p>
+              <h3 className="text-lg font-black text-ink">Edit Goal</h3>
+              <p className="text-xs text-ink-muted font-medium">Update details or delete goal</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-xl text-ink-muted hover:text-ink hover:bg-cloud-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSave} className="space-y-4 pt-4">
-          {errorMessage && (
-            <div className="p-3 rounded-2xl bg-coralberry-soft border border-coralberry/30 text-xs font-bold text-coralberry-dark">
-              {errorMessage}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">
-              Goal Name:
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl bg-cloud-100 border border-slate-200 text-sm font-bold text-ink focus:outline-none focus:border-pup focus:bg-white transition-all"
-            />
+        {errorMessage && (
+          <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+            {errorMessage}
           </div>
+        )}
 
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">
-              Target Amount (₹):
-            </label>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              required
-              value={targetStr}
-              onChange={(e) => setTargetStr(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl bg-cloud-100 border border-slate-200 text-sm font-bold text-ink focus:outline-none focus:border-pup focus:bg-white transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">
-              Change Icon:
-            </label>
-            <div className="grid grid-cols-4 gap-2 p-2 bg-cloud-100 rounded-2xl border border-slate-200">
-              {EMOJI_OPTIONS.map((e) => (
+            <label className="block text-xs font-bold text-ink mb-1.5">Pick Icon:</label>
+            <div className="grid grid-cols-6 gap-2">
+              {emojiList.map((em) => (
                 <button
                   type="button"
-                  key={e}
-                  onClick={() => setEmoji(e)}
-                  className={`h-10 rounded-xl text-xl flex items-center justify-center transition-all cursor-pointer ${
-                    emoji === e ? 'bg-white shadow-md scale-110 border border-pup/30' : 'hover:bg-white/60'
+                  key={em}
+                  onClick={() => setEmoji(em)}
+                  className={`h-10 rounded-xl text-lg flex items-center justify-center border transition-all cursor-pointer ${
+                    emoji === em
+                      ? 'bg-brand-soft border-brand text-brand-dark ring-2 ring-brand/20 scale-105'
+                      : 'bg-cloud-100 hover:bg-cloud-200 border-cloud-300'
                   }`}
                 >
-                  {e}
+                  {em}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-3">
+          <div>
+            <label className="block text-xs font-bold text-ink mb-1.5">Goal Title:</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 rounded-xl bg-cloud-100 border border-cloud-300 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-ink mb-1.5">Target Amount (₹):</label>
+            <input
+              type="number"
+              min="1"
+              value={targetAmountStr}
+              onChange={(e) => setTargetAmountStr(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 rounded-xl bg-cloud-100 border border-cloud-300 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white"
+            />
+          </div>
+
+          <div className="pt-2 flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 btn-primary py-2.5 text-xs font-bold"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save Changes</span>
+            </button>
+
             <button
               type="button"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="p-3 rounded-2xl border border-coralberry/30 text-coralberry hover:bg-coralberry-soft transition-colors"
+              className="btn-danger-soft py-2.5 px-3 text-xs font-bold"
               title="Delete this goal"
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-4 h-4" />
+              <span>Delete</span>
             </button>
+
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 btn-secondary text-xs sm:text-sm py-3"
+              className="btn-secondary py-2.5 px-3 text-xs font-bold"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 btn-primary text-xs sm:text-sm py-3"
-            >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>

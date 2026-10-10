@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Target, CheckCircle2, Clock, Trash2, Edit3, ArrowRight } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { Plus, Target, CheckCircle2, Search, Filter } from 'lucide-react';
 import { useSavingsStore } from '../../store/useSavingsStore';
 import { GoalCard } from '../home/GoalCard';
 import { SavingsGoal } from '../../types';
@@ -19,10 +19,14 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
 }) => {
   const { goals, activeGoalsCount, completedGoalsCount } = useSavingsStore();
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredGoals = goals.filter((g) => {
     const saved = Number(g.saved_amount) || 0;
     const target = Number(g.target_amount) || 1;
+    const matchesSearch = g.title.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
     if (filter === 'active') return saved < target;
     if (filter === 'completed') return saved >= target;
     return true;
@@ -30,19 +34,19 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* View Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-card">
+      {/* View Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-cloud-300 shadow-card">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">
-              Savings Goals 🎯
+              All Dream Goals 🎯
             </h1>
-            <span className="chip-tag bg-pup-soft text-pup">
-              {goals.length} Total
+            <span className="chip-tag bg-brand-soft text-brand-dark border border-brand-border font-black">
+              {goals.length} Goals
             </span>
           </div>
           <p className="text-xs sm:text-sm font-semibold text-ink-muted mt-1">
-            Track your progress, add money, or set a new dream to save for!
+            Choose what you want to achieve, save regularly, and win the savings certificate!
           </p>
         </div>
 
@@ -55,53 +59,65 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            filter === 'all'
-              ? 'bg-pup text-white shadow-sm'
-              : 'bg-white text-ink-muted hover:text-ink border border-slate-200/70'
-          }`}
-        >
-          All Goals ({goals.length})
-        </button>
-        <button
-          onClick={() => setFilter('active')}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            filter === 'active'
-              ? 'bg-pup text-white shadow-sm'
-              : 'bg-white text-ink-muted hover:text-ink border border-slate-200/70'
-          }`}
-        >
-          In Progress ({activeGoalsCount})
-        </button>
-        <button
-          onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            filter === 'completed'
-              ? 'bg-pup text-white shadow-sm'
-              : 'bg-white text-ink-muted hover:text-ink border border-slate-200/70'
-          }`}
-        >
-          Completed 🎉 ({completedGoalsCount})
-        </button>
+      {/* Search and Filters Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
+          <input
+            type="text"
+            placeholder="Search goals (e.g. toy, books, cycle)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-cloud-300 text-xs sm:text-sm font-semibold text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-2 focus:ring-brand shadow-xs"
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              filter === 'all'
+                ? 'bg-brand text-white shadow-xs'
+                : 'bg-white text-ink-muted hover:text-ink border border-cloud-300'
+            }`}
+          >
+            All ({goals.length})
+          </button>
+          <button
+            onClick={() => setFilter('active')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              filter === 'active'
+                ? 'bg-brand text-white shadow-xs'
+                : 'bg-white text-ink-muted hover:text-ink border border-cloud-300'
+            }`}
+          >
+            In Progress ({activeGoalsCount})
+          </button>
+          <button
+            onClick={() => setFilter('completed')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              filter === 'completed'
+                ? 'bg-brand text-white shadow-xs'
+                : 'bg-white text-ink-muted hover:text-ink border border-cloud-300'
+            }`}
+          >
+            Completed 🏆 ({completedGoalsCount})
+          </button>
+        </div>
       </div>
 
       {/* Goals Grid */}
       {filteredGoals.length === 0 ? (
         <div className="card-white text-center py-12 px-6">
-          <div className="text-4xl mb-2">🎈</div>
-          <h3 className="text-lg font-bold text-ink">No goals in this view</h3>
+          <div className="text-4xl mb-2">🔍</div>
+          <h3 className="text-lg font-bold text-ink">No goals match your search</h3>
           <p className="text-xs text-ink-muted mt-1 mb-4">
-            {filter === 'completed'
-              ? "You haven't completed any goals yet. Keep saving!"
-              : "No active goals found. Start a new one today!"}
+            Try a different search word or clear the filter.
           </p>
-          <button onClick={onOpenNewGoal} className="btn-primary">
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Create a Goal</span>
+          <button onClick={() => { setFilter('all'); setSearchQuery(''); }} className="btn-secondary text-xs">
+            Show All Goals
           </button>
         </div>
       ) : (
