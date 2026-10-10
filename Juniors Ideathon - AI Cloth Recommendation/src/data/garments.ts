@@ -220,14 +220,19 @@ export const makeGarmentSVG = (type: string, color: string, secondary = '#ffffff
     `;
   } else if (type === 'glasses') {
     shapeSvg = `
-      <!-- Dual-Lens Designer Glasses -->
-      <rect x="22" y="48" width="34" height="25" rx="6" fill="${color}" stroke="#29243B" stroke-width="2.5"/>
-      <rect x="64" y="48" width="34" height="25" rx="6" fill="${color}" stroke="#29243B" stroke-width="2.5"/>
-      <rect x="26" y="52" width="26" height="17" rx="3" fill="${secondary}" opacity="0.9"/>
-      <rect x="68" y="52" width="26" height="17" rx="3" fill="${secondary}" opacity="0.9"/>
-      <path d="M56,58 Q60,53 64,58" fill="none" stroke="#D4AF37" stroke-width="3"/>
-      <line x1="22" y1="52" x2="14" y2="48" stroke="#29243B" stroke-width="2.5"/>
-      <line x1="98" y1="52" x2="106" y2="48" stroke="#29243B" stroke-width="2.5"/>
+      <!-- Dual-Lens Designer Eyewear with Sculpted Rims -->
+      <rect x="20" y="46" width="36" height="26" rx="8" fill="${color}" stroke="#29243B" stroke-width="2.2"/>
+      <rect x="64" y="46" width="36" height="26" rx="8" fill="${color}" stroke="#29243B" stroke-width="2.2"/>
+      <rect x="24" y="50" width="28" height="18" rx="4" fill="${secondary}" opacity="0.75"/>
+      <rect x="68" y="50" width="28" height="18" rx="4" fill="${secondary}" opacity="0.75"/>
+      <!-- Metallic Arched Bridge -->
+      <path d="M56,56 Q60,51 64,56" fill="none" stroke="#D4AF37" stroke-width="3" stroke-linecap="round"/>
+      <!-- Front Rivet Accents -->
+      <circle cx="24" cy="50" r="1.2" fill="#D4AF37"/>
+      <circle cx="96" cy="50" r="1.2" fill="#D4AF37"/>
+      <!-- Temples -->
+      <path d="M20,50 L12,47" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M100,50 L108,47" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
     `;
   } else if (type === 'cap') {
     shapeSvg = `
@@ -1013,27 +1018,143 @@ export const GARMENTS: Garment[] = [
     is3dModel: true
   },
   {
+    id: 'acc-glasses-none',
+    name: 'None (No Glasses)',
+    category: 'accessories',
+    subcategory: 'Glasses',
+    brand: 'Studio Wardrobe',
+    price: 0,
+    currency: '£',
+    colorName: 'Clear View',
+    hexColor: '#B8B5C4',
+    size: 'Universal',
+    availableSizes: ['Universal'],
+    fabric: 'No eyewear equipped',
+    description: 'Remove eyewear and reveal natural face and eye clarity.',
+    moodAffinity: ['happy', 'chill', 'calm', 'confident', 'tired'],
+    occasionAffinity: ['casual', 'work', 'party', 'sports', 'home', 'college', 'special'],
+    pbr: {
+      color: '#FFFFFF',
+      roughness: 1,
+      metalness: 0
+    },
+    thumbnailUrl: makeGarmentSVG('none', '#B8B5C4', '#FFFFFF', 'NO GLASSES'),
+    isNone: true
+  },
+  {
     id: 'acc-sunglasses-dual',
-    name: 'Designer Dual-Lens Acetate Sunglasses',
+    name: 'Designer Dual-Lens Acetate Wayfarer',
     category: 'accessories',
     subcategory: 'Glasses',
     brand: 'Sun Studio',
     price: 45.00,
     currency: '£',
-    colorName: 'Black Frame / Polarized Green',
-    hexColor: '#1E1C21',
+    colorName: 'Onyx Black / G-15 Green',
+    hexColor: '#18171B',
     size: 'Universal',
     availableSizes: ['Universal'],
-    fabric: 'Bio-Acetate with UV400 Dual Polarized Lenses',
-    description: 'Hand-beveled frame with custom 5-barrel hinges, dual dark green lenses, and gold bridge.',
+    fabric: 'Hand-beveled bio-acetate with UV400 polarized bottle-green lenses',
+    description: 'Custom sculpted acetate frame with beveled rims, 5-barrel hinges, gold bridge, and semi-transparent lenses.',
     moodAffinity: ['happy', 'chill', 'confident'],
     occasionAffinity: ['casual', 'party', 'sports'],
     pbr: {
-      color: '#1E1C21',
-      roughness: 0.22,
-      metalness: 0.3
+      color: '#18171B',
+      roughness: 0.18,
+      metalness: 0.2
     },
-    thumbnailUrl: makeGarmentSVG('glasses', '#1E1C21', '#243B33', 'UV400 · DUAL')
+    thumbnailUrl: makeGarmentSVG('glasses', '#18171B', '#15241C', 'WAYFARER · G-15')
+  },
+  {
+    id: 'acc-glasses-aviator',
+    name: '18K Gold Double-Bridge Aviator',
+    category: 'accessories',
+    subcategory: 'Glasses',
+    brand: 'Aerolux Paris',
+    price: 68.00,
+    currency: '£',
+    colorName: 'Brushed Gold / Amber Gradient',
+    hexColor: '#D4AF37',
+    size: 'Universal',
+    availableSizes: ['Universal'],
+    fabric: 'Ultra-lightweight titanium alloy with 18k gold plate and amber gradient lenses',
+    description: 'Iconic teardrop aviator silhouette with brow bar, adjustable silicone nose pads, and bayonet temples.',
+    moodAffinity: ['confident', 'happy'],
+    occasionAffinity: ['casual', 'party', 'special'],
+    pbr: {
+      color: '#D4AF37',
+      roughness: 0.15,
+      metalness: 0.95
+    },
+    thumbnailUrl: makeGarmentSVG('glasses', '#D4AF37', '#2A1F14', 'AVIATOR · 18K GOLD')
+  },
+  {
+    id: 'acc-glasses-clubmaster',
+    name: 'Retro Browline Clubmaster Specs',
+    category: 'accessories',
+    subcategory: 'Glasses',
+    brand: 'Heritage Eyewear',
+    price: 52.00,
+    currency: '£',
+    colorName: 'Obsidian & Silver / Smoke Grey',
+    hexColor: '#1A181C',
+    size: 'Universal',
+    availableSizes: ['Universal'],
+    fabric: 'Italian cellulose acetate browline with polished silver monel eyewire',
+    description: 'Mid-century intellectual styling with silver wire rims, platinum rivets, and smoke tinted lenses.',
+    moodAffinity: ['confident', 'calm'],
+    occasionAffinity: ['work', 'college', 'special'],
+    pbr: {
+      color: '#1A181C',
+      roughness: 0.16,
+      metalness: 0.2
+    },
+    thumbnailUrl: makeGarmentSVG('glasses', '#1A181C', '#1C1D24', 'CLUBMASTER')
+  },
+  {
+    id: 'acc-glasses-tortoise-round',
+    name: 'Havana Tortoise Round Panto Spectacles',
+    category: 'accessories',
+    subcategory: 'Glasses',
+    brand: 'Sartorial Optics',
+    price: 48.00,
+    currency: '£',
+    colorName: 'Warm Tortoise / Blue-Light Filter',
+    hexColor: '#5C3822',
+    size: 'Universal',
+    availableSizes: ['Universal'],
+    fabric: 'Custom acetate with keyhole bridge and blue-light anti-reflective optical glass',
+    description: 'Round panto profile with keyhole bridge, clear anti-reflective lenses, and tortoiseshell acetate.',
+    moodAffinity: ['chill', 'calm', 'tired'],
+    occasionAffinity: ['work', 'college', 'home'],
+    pbr: {
+      color: '#5C3822',
+      roughness: 0.22,
+      metalness: 0.1
+    },
+    thumbnailUrl: makeGarmentSVG('glasses', '#5C3822', '#EBF4F8', 'ROUND · CLEAR AR')
+  },
+  {
+    id: 'acc-glasses-minimal',
+    name: 'Gunmetal Titanium Minimalist Frames',
+    category: 'accessories',
+    subcategory: 'Glasses',
+    brand: 'Nordic Minimal',
+    price: 60.00,
+    currency: '£',
+    colorName: 'Matte Gunmetal / Crystal Clear',
+    hexColor: '#3A3C42',
+    size: 'Universal',
+    availableSizes: ['Universal'],
+    fabric: 'Japanese beta-titanium wire rim with ultra-clear scratch-resistant lenses',
+    description: 'Featherlight minimalist rectangular profile with clean geometric lines and zero eye obstruction.',
+    moodAffinity: ['calm', 'confident'],
+    occasionAffinity: ['work', 'college', 'casual'],
+    pbr: {
+      color: '#3A3C42',
+      roughness: 0.3,
+      metalness: 0.9
+    },
+    thumbnailUrl: makeGarmentSVG('glasses', '#3A3C42', '#EDF6FA', 'TITANIUM · CLEAR')
   },
   {
     id: 'acc-fedora-olive',

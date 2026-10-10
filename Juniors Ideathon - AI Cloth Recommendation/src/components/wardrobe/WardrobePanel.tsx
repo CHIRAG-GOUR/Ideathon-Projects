@@ -102,7 +102,7 @@ export function WardrobePanel() {
             const labelMap: Record<string, string> = {
               all: 'All Accessories',
               Watch: 'Watches (4)',
-              Glasses: 'Glasses',
+              Glasses: 'Glasses (6)',
               Headwear: 'Hats & Headwear'
             };
             return (

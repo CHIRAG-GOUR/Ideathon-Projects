@@ -159,15 +159,18 @@ export function Avatar3D() {
     return watch;
   }, [watchVariant]);
 
-  // Dual-lens sunglasses accessory instance
+  // Dual-lens designer eyewear instance
   const sunglassesInstance = useMemo(() => {
-    const glasses = createGlassesMesh();
+    if (!equipped.glasses || equipped.glasses.isNone || equipped.glasses.id === 'acc-glasses-none') {
+      return null;
+    }
+    const glasses = createGlassesMesh(equipped.glasses);
     // Positioned cleanly on nose bridge ridge across pupils without clipping into eye sockets
-    glasses.position.set(0, 0.088, 0.106);
+    glasses.position.set(0, 0.088, 0.107);
     glasses.rotation.set(0, 0, 0); // perfectly level across eyes
     glasses.scale.set(1.0, 1.0, 1.0);
     return glasses;
-  }, []);
+  }, [equipped.glasses]);
 
   // Attach / Detach accessories & headwear on armature bones
   useEffect(() => {
@@ -182,14 +185,17 @@ export function Avatar3D() {
       }
     }
 
-    // 2. GLASSES (dual lens)
+    // 2. GLASSES (designer eyewear)
     const headBone = bonesMap.Head;
-    const hasGlasses = !!equipped.glasses || (equipped.accessories?.subcategory === 'Glasses');
-    if (headBone && sunglassesInstance) {
-      if (hasGlasses) {
+    const hasGlasses = !!sunglassesInstance && !!equipped.glasses && !equipped.glasses.isNone && equipped.glasses.id !== 'acc-glasses-none';
+    if (headBone) {
+      // Clean up any previously attached glasses
+      const existingGlasses = headBone.getObjectByName('DesignerEyewear') || headBone.getObjectByName('DesignerSunglasses');
+      if (existingGlasses) {
+        headBone.remove(existingGlasses);
+      }
+      if (hasGlasses && sunglassesInstance) {
         headBone.add(sunglassesInstance);
-      } else {
-        headBone.remove(sunglassesInstance);
       }
     }
 
