@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-ivory: #FAF8F4;
+    --color-plum: #29243B;
+  }
+
+  body {
+    background-color: #FAF8F4;
+    color: #29243B;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FAF8F4;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #EAE6EE;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #D0C6FF;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-coral text-white font-medium text-sm transition-all duration-200 hover:bg-coral-hover active:scale-[0.98] shadow-sm hover:shadow-soft cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white text-plum border border-border-light font-medium text-sm transition-all duration-200 hover:bg-ivory hover:border-plum/20 active:scale-[0.98] shadow-card cursor-pointer;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 p-2 rounded-xl text-plum-muted hover:text-plum hover:bg-lavender/50 transition-colors duration-150 cursor-pointer;
+  }
+
+  .card-surface {
+    @apply bg-white rounded-3xl border border-border-light shadow-card transition-shadow duration-200;
+  }
+
+  .chip-mood {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer;
+  }
+}
+
+/* Animations */
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
